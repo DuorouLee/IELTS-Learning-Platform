@@ -2,6 +2,7 @@ package com.duorou.ieltsbackend.reading.dto;
 
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
+import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
 
 import java.util.List;
 
@@ -28,15 +29,22 @@ public class ReadingTestDetailResponse {
      */
     private List<ReadingPassage> passages;
 
+    /**
+     * 当前 Reading Test 下的所有 Question。
+     */
+    private List<ReadingQuestion> questions;
+
     public ReadingTestDetailResponse() {
     }
 
     public ReadingTestDetailResponse(
             ReadingTest test,
-            List<ReadingPassage> passages
+            List<ReadingPassage> passages,
+            List<ReadingQuestion> questions
     ) {
         this.test = test;
         this.passages = passages;
+        this.questions = questions;
     }
 
     public ReadingTest getTest() {
@@ -53,5 +61,13 @@ public class ReadingTestDetailResponse {
 
     public void setPassages(List<ReadingPassage> passages) {
         this.passages = passages;
+    }
+
+    public List<ReadingQuestion> getQuestions() {
+        return questions;
+    }
+
+    public void setQuestions(List<ReadingQuestion> questions) {
+        this.questions = questions;
     }
 }

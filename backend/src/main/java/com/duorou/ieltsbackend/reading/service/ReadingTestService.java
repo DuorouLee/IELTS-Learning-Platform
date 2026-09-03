@@ -1,11 +1,14 @@
 package com.duorou.ieltsbackend.reading.service;
 
+import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import com.duorou.ieltsbackend.reading.repository.ReadingPassageRepository;
+import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import org.springframework.stereotype.Service;
 import com.duorou.ieltsbackend.reading.dto.ReadingTestDetailResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
+
 
 
 import java.util.List;
@@ -42,6 +45,8 @@ public class ReadingTestService {
 
     private final ReadingPassageRepository readingPassageRepository;
 
+    private final ReadingQuestionRepository readingQuestionRepository;
+
     /**
      * 构造器注入。
      *
@@ -53,10 +58,12 @@ public class ReadingTestService {
      */
     public ReadingTestService(
             ReadingTestRepository readingTestRepository,
-            ReadingPassageRepository readingPassageRepository
+            ReadingPassageRepository readingPassageRepository,
+            ReadingQuestionRepository readingQuestionRepository
     ) {
         this.readingTestRepository = readingTestRepository;
         this.readingPassageRepository = readingPassageRepository;
+        this.readingQuestionRepository = readingQuestionRepository;
     }
 
     /**
@@ -113,9 +120,13 @@ public class ReadingTestService {
         List<ReadingPassage> passages =
                 readingPassageRepository.findByReadingTestId(testId);
 
+        List<ReadingQuestion> questions =
+                readingQuestionRepository.findAll();
+
         return new ReadingTestDetailResponse(
                 test,
-                passages
+                passages,
+                questions
         );
     }
 }
