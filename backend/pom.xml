@@ -79,6 +79,20 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.53.4.0</version>
         </dependency>
+        <!--
+            MyBatis Spring Boot Starter
+
+            作用：
+            1. 让 Spring Boot 能管理 MyBatis；
+            2. 自动创建 SqlSessionFactory；
+            3. 让我们后续可以通过 Mapper 接口访问数据库；
+            4. 比直接写 JDBC 更适合后面的 Reading / Vocabulary 复杂查询。
+        -->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+            <version>4.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>
