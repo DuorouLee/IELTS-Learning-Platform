@@ -14,3 +14,22 @@ Content-Type: application/json
 
 ### 查询 id = 1 的 Reading Test
 GET http://localhost:8080/api/reading/tests/1
+
+### 创建 ReadingPassage
+POST http://localhost:8080/api/reading/passages
+Content-Type: application/json
+
+{
+  "readingTest": {
+    "id": 1
+  },
+  "passageNumber": 1,
+  "title": "The History of IELTS",
+  "content": "IELTS is an international English language testing system."
+}
+
+### 查询所有 ReadingPassage
+GET http://localhost:8080/api/reading/passages
+
+### 查询 id = 1 的 ReadingPassage
+GET http://localhost:8080/api/reading/passages/1
