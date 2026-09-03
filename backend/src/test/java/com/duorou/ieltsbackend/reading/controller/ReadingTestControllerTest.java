@@ -16,6 +16,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import tools.jackson.databind.json.JsonMapper;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import org.springframework.http.MediaType;
 
 /**
  * ReadingTestController 的自动化测试。
@@ -57,7 +63,6 @@ class ReadingTestControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-
     /**
      * 这里直接使用 Repository，
      * 不是因为 Controller 应该访问 Repository。
@@ -76,6 +81,18 @@ class ReadingTestControllerTest {
     @Autowired
     private ReadingTestRepository readingTestRepository;
 
+    /**
+     * Spring Boot 4 默认使用 Jackson 3。
+     *
+     * JsonMapper 的作用：
+     * 把 Java 对象转换成 JSON，
+     * 或者把 JSON 转换成 Java 对象。
+     *
+     * Spring Boot 会自动创建这个 Bean，
+     * 所以这里可以直接通过 @Autowired 注入。
+     */
+    @Autowired
+    private JsonMapper jsonMapper;
 
     /**
      * 每一个测试运行之前，
@@ -217,6 +234,86 @@ class ReadingTestControllerTest {
                 )
 
                 // source 应该一致
+                .andExpect(
+                        jsonPath("$.source")
+                                .value("Cambridge IELTS")
+                );
+    }
+
+    /**
+     * 测试：
+     *
+     * POST /api/reading/tests
+     *
+     * 目标：
+     * 1. 发送一个 ReadingTest JSON
+     * 2. Controller 接收请求
+     * 3. Service 保存数据
+     * 4. Repository 写入 SQLite
+     * 5. API 返回保存后的 ReadingTest
+     */
+    @Test
+    void shouldCreateReadingTest() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 准备一个要提交的数据对象
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+
+        readingTest.setTitle("Cambridge IELTS Reading Test 3");
+        readingTest.setSource("Cambridge IELTS");
+
+
+        // -----------------------------
+        // 把 Java 对象转换成 JSON
+        // -----------------------------
+        String requestJson =
+                jsonMapper.writeValueAsString(readingTest);
+
+
+        // -----------------------------
+        // Act + Assert
+        //
+        // 模拟发送：
+        //
+        // POST /api/reading/tests
+        //
+        // 请求体：
+        // {
+        //   "title": "...",
+        //   "source": "..."
+        // }
+        // -----------------------------
+        mockMvc.perform(
+                        post("/api/reading/tests")
+
+                                // 告诉服务器：
+                                // 我发送的是 JSON
+                                .contentType(MediaType.APPLICATION_JSON)
+
+                                // 把 JSON 放进 HTTP 请求体
+                                .content(requestJson)
+                )
+
+                // 如果你的 Controller 当前返回 200，
+                // 这里就用 isOk()
+                .andExpect(
+                        status().isOk()
+                )
+
+                // 返回的数据应该有数据库生成的 id
+                .andExpect(
+                        jsonPath("$.id").exists()
+                )
+
+                // 返回的 title 应该正确
+                .andExpect(
+                        jsonPath("$.title")
+                                .value("Cambridge IELTS Reading Test 3")
+                )
+
+                // 返回的 source 应该正确
                 .andExpect(
                         jsonPath("$.source")
                                 .value("Cambridge IELTS")
