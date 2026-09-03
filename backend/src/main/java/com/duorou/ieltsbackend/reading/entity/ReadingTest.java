@@ -57,16 +57,18 @@ public class ReadingTest {
     /**
      * 创建时间。
      *
-     * 数据库字段名是：
-     * created_at
+     * insertable = false：
+     * 插入数据时，不让 Hibernate 主动写 created_at，
+     * 交给 SQLite 的 DEFAULT CURRENT_TIMESTAMP 自动生成。
      *
-     * Java 使用驼峰命名：
-     * createdAt
-     *
-     * 所以通过 @Column 告诉 JPA
-     * 它们实际上是同一个字段。
+     * updatable = false：
+     * 后续更新 ReadingTest 时，也不修改创建时间。
      */
-    @Column(name = "created_at")
+    @Column(
+            name = "created_at",
+            insertable = false,
+            updatable = false
+    )
     private LocalDateTime createdAt;
 
     /**
