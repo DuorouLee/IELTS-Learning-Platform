@@ -10,18 +10,18 @@ import java.util.List;
 
 /**
  * ReadingQuestionService
- *
+ * <p>
  * 作用：
  * 负责 ReadingQuestion 的业务逻辑。
- *
+ * <p>
  * 调用链路：
- *
+ * <p>
  * ReadingQuestionController
- *          ↓
+ * ↓
  * ReadingQuestionService
- *          ↓
+ * ↓
  * ReadingQuestionRepository
- *          ↓
+ * ↓
  * SQLite
  */
 @Service
@@ -34,7 +34,7 @@ public class ReadingQuestionService {
 
     /**
      * 构造器注入。
-     *
+     * <p>
      * Spring 启动时，
      * 会自动把 ReadingQuestionRepository
      * 注入进来。
@@ -54,7 +54,7 @@ public class ReadingQuestionService {
 
     /**
      * 根据 id 查询 Question。
-     *
+     * <p>
      * 如果找不到，
      * 返回 HTTP 404。
      */
@@ -76,5 +76,12 @@ public class ReadingQuestionService {
             ReadingQuestion readingQuestion
     ) {
         return readingQuestionRepository.save(readingQuestion);
+    }
+
+    /**
+     * 查询某一个 Passage 下的全部题目。
+     */
+    public List<ReadingQuestion> findByPassageId(Long passageId) {
+        return readingQuestionRepository.findByReadingPassageId(passageId);
     }
 }
