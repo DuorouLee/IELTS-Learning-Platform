@@ -1,0 +1,16 @@
+### 查询所有 Reading Test
+GET http://localhost:8080/api/reading/tests
+
+
+### 创建一个 Reading Test
+POST http://localhost:8080/api/reading/tests
+Content-Type: application/json
+
+{
+  "title": "Cambridge IELTS 18 Test 1",
+  "source": "Cambridge IELTS 18"
+}
+
+
+### 查询 id = 1 的 Reading Test
+GET http://localhost:8080/api/reading/tests/1
