@@ -121,7 +121,7 @@ public class ReadingTestService {
                 readingPassageRepository.findByReadingTestId(testId);
 
         List<ReadingQuestion> questions =
-                readingQuestionRepository.findAll();
+                readingQuestionRepository.findByReadingPassageReadingTestId(testId);
 
         return new ReadingTestDetailResponse(
                 test,

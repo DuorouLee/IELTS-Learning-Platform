@@ -20,4 +20,19 @@ public interface ReadingQuestionRepository
      * Spring Data JPA 会根据方法名自动生成查询逻辑。
      */
     List<ReadingQuestion> findByReadingPassageId(Long passageId);
+
+    /**
+     * 根据 ReadingTest id 查询这个 Test 下的所有 Question。
+     *
+     * 查询关系：
+     *
+     * ReadingQuestion
+     *      ↓
+     * readingPassage
+     *      ↓
+     * readingTest
+     *      ↓
+     * id
+     */
+    List<ReadingQuestion> findByReadingPassageReadingTestId(Long testId);
 }
