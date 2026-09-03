@@ -1,8 +1,12 @@
 package com.duorou.ieltsbackend.reading.service;
 
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
+import com.duorou.ieltsbackend.reading.repository.ReadingPassageRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import org.springframework.stereotype.Service;
+import com.duorou.ieltsbackend.reading.dto.ReadingTestDetailResponse;
+import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
+
 
 import java.util.List;
 
@@ -36,6 +40,8 @@ public class ReadingTestService {
      */
     private final ReadingTestRepository readingTestRepository;
 
+    private final ReadingPassageRepository readingPassageRepository;
+
     /**
      * 构造器注入。
      *
@@ -46,9 +52,11 @@ public class ReadingTestService {
      * 因为这种方式更适合正式项目，也更容易测试。
      */
     public ReadingTestService(
-            ReadingTestRepository readingTestRepository
+            ReadingTestRepository readingTestRepository,
+            ReadingPassageRepository readingPassageRepository
     ) {
         this.readingTestRepository = readingTestRepository;
+        this.readingPassageRepository = readingPassageRepository;
     }
 
     /**
@@ -92,5 +100,22 @@ public class ReadingTestService {
      */
     public ReadingTest create(ReadingTest readingTest) {
         return readingTestRepository.save(readingTest);
+    }
+
+    /**
+     * 查询一个 ReadingTest，
+     * 并把它下面的 Passage 一起返回。
+     */
+    public ReadingTestDetailResponse findDetailById(Long testId) {
+
+        ReadingTest test = findById(testId);
+
+        List<ReadingPassage> passages =
+                readingPassageRepository.findByReadingTestId(testId);
+
+        return new ReadingTestDetailResponse(
+                test,
+                passages
+        );
     }
 }

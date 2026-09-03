@@ -1,5 +1,6 @@
 package com.duorou.ieltsbackend.reading.controller;
 
+import com.duorou.ieltsbackend.reading.dto.ReadingTestDetailResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import com.duorou.ieltsbackend.reading.service.ReadingTestService;
 import org.springframework.web.bind.annotation.*;
@@ -97,5 +98,17 @@ public class ReadingTestController {
             @RequestBody ReadingTest readingTest
     ) {
         return readingTestService.create(readingTest);
+    }
+
+    /**
+     * 查询完整 ReadingTest。
+     *
+     * GET /api/reading/tests/1/full
+     */
+    @GetMapping("/{id}/full")
+    public ReadingTestDetailResponse getReadingTestDetail(
+            @PathVariable Long id
+    ) {
+        return readingTestService.findDetailById(id);
     }
 }

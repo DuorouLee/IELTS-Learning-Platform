@@ -64,3 +64,6 @@ GET http://localhost:8080/api/reading/passages/3/questions
 
 ### 查询 ReadingTest 1 下的所有 Passage
 GET http://localhost:8080/api/reading/tests/1/passages
+
+### 查询完整 ReadingTest
+GET http://localhost:8080/api/reading/tests/1/full
