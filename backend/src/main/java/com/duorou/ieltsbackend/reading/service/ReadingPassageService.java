@@ -78,4 +78,11 @@ public class ReadingPassageService {
     public ReadingPassage create(ReadingPassage readingPassage) {
         return readingPassageRepository.save(readingPassage);
     }
+
+    /**
+     * 查询某一个 ReadingTest 下的所有 Passage。
+     */
+    public List<ReadingPassage> findByTestId(Long testId) {
+        return readingPassageRepository.findByReadingTestId(testId);
+    }
 }

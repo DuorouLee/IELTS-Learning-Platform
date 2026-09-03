@@ -26,7 +26,7 @@ import java.util.List;
  * SQLite
  */
 @RestController
-@RequestMapping("/api/reading/passages")
+@RequestMapping("/api/reading")
 public class ReadingPassageController {
 
     /**
@@ -52,7 +52,7 @@ public class ReadingPassageController {
      * 请求：
      * GET /api/reading/passages
      */
-    @GetMapping
+    @GetMapping("/passages")
     public List<ReadingPassage> getAllPassages() {
         return readingPassageService.findAll();
     }
@@ -63,7 +63,7 @@ public class ReadingPassageController {
      * 例如：
      * GET /api/reading/passages/1
      */
-    @GetMapping("/{id}")
+    @GetMapping("/passages/{id}")
     public ReadingPassage getPassageById(
             @PathVariable Long id
     ) {
@@ -79,10 +79,23 @@ public class ReadingPassageController {
      * @RequestBody： 把前端发送过来的 JSON
      * 自动转换成 ReadingPassage Java 对象。
      */
-    @PostMapping
+    @PostMapping("/passages")
     public ReadingPassage createPassage(
             @RequestBody ReadingPassage readingPassage
     ) {
         return readingPassageService.create(readingPassage);
+    }
+
+    /**
+     * 查询某个 ReadingTest 下的所有 Passage。
+     * <p>
+     * 例如：
+     * GET /api/reading/tests/1/passages
+     */
+    @GetMapping("/tests/{testId}/passages")
+    public List<ReadingPassage> getPassagesByTestId(
+            @PathVariable Long testId
+    ) {
+        return readingPassageService.findByTestId(testId);
     }
 }
