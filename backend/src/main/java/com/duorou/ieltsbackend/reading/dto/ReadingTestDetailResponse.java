@@ -28,7 +28,7 @@ public class ReadingTestDetailResponse {
     /**
      * 当前 Test 下的所有 Passage。
      */
-    private List<ReadingPassage> passages;
+    private List<ReadingPassageResponse> passages;
 
     /**
      * 当前 Reading Test 下的所有 Question。
@@ -40,7 +40,7 @@ public class ReadingTestDetailResponse {
 
     public ReadingTestDetailResponse(
             ReadingTest test,
-            List<ReadingPassage> passages,
+            List<ReadingPassageResponse> passages,
             List<ReadingQuestionResponse> questions
     ) {
         this.test = test;
@@ -56,11 +56,11 @@ public class ReadingTestDetailResponse {
         this.test = test;
     }
 
-    public List<ReadingPassage> getPassages() {
+    public List<ReadingPassageResponse> getPassages() {
         return passages;
     }
 
-    public void setPassages(List<ReadingPassage> passages) {
+    public void setPassages(List<ReadingPassageResponse> passages) {
         this.passages = passages;
     }
 

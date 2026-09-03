@@ -1,5 +1,6 @@
 package com.duorou.ieltsbackend.reading.service;
 
+import com.duorou.ieltsbackend.reading.dto.ReadingPassageResponse;
 import com.duorou.ieltsbackend.reading.dto.ReadingQuestionResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
@@ -121,6 +122,16 @@ public class ReadingTestService {
         List<ReadingPassage> passages =
                 readingPassageRepository.findByReadingTestId(testId);
 
+        List<ReadingPassageResponse> passageResponses =
+                passages.stream()
+                        .map(passage -> new ReadingPassageResponse(
+                                passage.getId(),
+                                passage.getPassageNumber(),
+                                passage.getTitle(),
+                                passage.getContent()
+                        ))
+                        .toList();
+
         List<ReadingQuestion> questions =
                 readingQuestionRepository.findByReadingPassageReadingTestId(testId);
 
@@ -138,7 +149,7 @@ public class ReadingTestService {
 
         return new ReadingTestDetailResponse(
                 test,
-                passages,
+                passageResponses,
                 questionResponses
         );
     }
