@@ -122,35 +122,53 @@ public class ReadingTestService {
         List<ReadingPassage> passages =
                 readingPassageRepository.findByReadingTestId(testId);
 
-        List<ReadingPassageResponse> passageResponses =
-                passages.stream()
-                        .map(passage -> new ReadingPassageResponse(
-                                passage.getId(),
-                                passage.getPassageNumber(),
-                                passage.getTitle(),
-                                passage.getContent()
-                        ))
-                        .toList();
-
         List<ReadingQuestion> questions =
                 readingQuestionRepository.findByReadingPassageReadingTestId(testId);
 
-        List<ReadingQuestionResponse> questionResponses =
-                questions.stream()
-                        .map(question -> new ReadingQuestionResponse(
-                                question.getId(),
-                                question.getQuestionNumber(),
-                                question.getQuestionType(),
-                                question.getQuestionText(),
-                                question.getCorrectAnswer(),
-                                question.getExplanation()
-                        ))
-                        .toList();
 
+        List<ReadingPassageResponse> passageResponses =
+                passages.stream()
+                        .map(passage -> {
+
+                            /**
+                             * 先找出属于当前 passage 的所有 Question。
+                             */
+                            List<ReadingQuestionResponse> passageQuestions =
+                                    questions.stream()
+                                            .filter(question ->
+                                                    question.getReadingPassage()
+                                                            .getId()
+                                                            .equals(passage.getId())
+                                            )
+                                            .map(question ->
+                                                    new ReadingQuestionResponse(
+                                                            question.getId(),
+                                                            question.getQuestionNumber(),
+                                                            question.getQuestionType(),
+                                                            question.getQuestionText(),
+                                                            question.getCorrectAnswer(),
+                                                            question.getExplanation()
+                                                    )
+                                            )
+                                            .toList();
+
+                            /**
+                             * 再创建当前 Passage 的 DTO，
+                             * 并把它自己的 Questions 放进去。
+                             */
+                            return new ReadingPassageResponse(
+                                    passage.getId(),
+                                    passage.getPassageNumber(),
+                                    passage.getTitle(),
+                                    passage.getContent(),
+                                    passageQuestions
+                            );
+                        })
+                        .toList();
+        
         return new ReadingTestDetailResponse(
                 test,
-                passageResponses,
-                questionResponses
+                passageResponses
         );
     }
 }

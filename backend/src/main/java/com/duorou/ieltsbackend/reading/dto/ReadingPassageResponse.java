@@ -1,5 +1,7 @@
 package com.duorou.ieltsbackend.reading.dto;
 
+import java.util.List;
+
 /**
  * ReadingPassageResponse
  *
@@ -18,7 +20,20 @@ public class ReadingPassageResponse {
 
     private String content;
 
-    public ReadingPassageResponse() {
+    private List<ReadingQuestionResponse> questions;
+
+    public ReadingPassageResponse(
+            Long id,
+            Integer passageNumber,
+            String title,
+            String content,
+            List<ReadingQuestionResponse> questions
+    ) {
+        this.id = id;
+        this.passageNumber = passageNumber;
+        this.title = title;
+        this.content = content;
+        this.questions = questions;
     }
 
     public ReadingPassageResponse(
@@ -47,5 +62,9 @@ public class ReadingPassageResponse {
 
     public String getContent() {
         return content;
+    }
+
+    public List<ReadingQuestionResponse> getQuestions() {
+        return questions;
     }
 }
