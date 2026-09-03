@@ -36,3 +36,25 @@ GET http://localhost:8080/api/reading/passages/1
 
 ### 查询所有 ReadingQuestion
 GET http://localhost:8080/api/reading/questions
+
+
+### 创建 ReadingQuestion
+POST http://localhost:8080/api/reading/questions
+Content-Type: application/json
+
+{
+  "readingPassage": {
+    "id": 1
+  },
+  "questionNumber": 1,
+  "questionType": "TRUE_FALSE_NOT_GIVEN",
+  "questionText": "IELTS is only used for university admission.",
+  "correctAnswer": "FALSE",
+  "explanation": "IELTS is also used for immigration, employment and other purposes."
+}
+
+### 查询所有 ReadingQuestion
+GET http://localhost:8080/api/reading/questions
+
+### 查询 id = 1 的 ReadingQuestion
+GET http://localhost:8080/api/reading/questions/1
