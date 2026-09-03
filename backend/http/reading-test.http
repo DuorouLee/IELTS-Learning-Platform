@@ -33,3 +33,6 @@ GET http://localhost:8080/api/reading/passages
 
 ### 查询 id = 1 的 ReadingPassage
 GET http://localhost:8080/api/reading/passages/1
+
+### 查询所有 ReadingQuestion
+GET http://localhost:8080/api/reading/questions
