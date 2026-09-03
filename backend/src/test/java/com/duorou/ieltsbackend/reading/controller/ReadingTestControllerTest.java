@@ -154,4 +154,72 @@ class ReadingTestControllerTest {
                                 .value("Cambridge IELTS")
                 );
     }
+
+    /**
+     * 测试：
+     *
+     * GET /api/reading/tests/{id}
+     *
+     * 目标：
+     * 根据 id 查询一条 ReadingTest，
+     * 并确认 REST API 返回的数据正确。
+     */
+    @Test
+    void shouldReturnReadingTestById() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 先准备一条测试数据
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+
+        readingTest.setTitle("Cambridge IELTS Reading Test 2");
+        readingTest.setSource("Cambridge IELTS");
+
+        // save() 之后，数据库会给这条数据生成 id
+        ReadingTest savedReadingTest =
+                readingTestRepository.save(readingTest);
+
+
+        // -----------------------------
+        // Act + Assert
+        //
+        // 模拟请求：
+        //
+        // GET /api/reading/tests/{id}
+        //
+        // savedReadingTest.getId()
+        // 就是刚刚数据库生成的真实 id
+        // -----------------------------
+        mockMvc.perform(
+                        get(
+                                "/api/reading/tests/{id}",
+                                savedReadingTest.getId()
+                        )
+                )
+
+                // 请求应该成功
+                .andExpect(
+                        status().isOk()
+                )
+
+                // 返回 JSON 的 id
+                // 应该和数据库里的 id 一致
+                .andExpect(
+                        jsonPath("$.id")
+                                .value(savedReadingTest.getId())
+                )
+
+                // title 应该一致
+                .andExpect(
+                        jsonPath("$.title")
+                                .value("Cambridge IELTS Reading Test 2")
+                )
+
+                // source 应该一致
+                .andExpect(
+                        jsonPath("$.source")
+                                .value("Cambridge IELTS")
+                );
+    }
 }
