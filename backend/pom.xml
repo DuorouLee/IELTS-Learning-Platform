@@ -49,6 +49,36 @@
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+            Flyway 数据库迁移工具。
+
+            它负责：
+            1. 在 Spring Boot 启动时检查数据库版本；
+            2. 按顺序执行 db/migration 目录下的 SQL 文件；
+            3. 记录哪些数据库变更已经执行过。
+
+            后面数据库结构发生变化时，我们不会手动修改数据库，
+            而是通过 V1、V2、V3... 这样的迁移文件进行版本管理。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+
+        <!--
+            SQLite 的 Java JDBC 驱动。
+
+            Spring Boot / JDBC 本身并不知道如何直接操作 SQLite，
+            这个驱动负责把 Java JDBC 调用转换成 SQLite 数据库操作。
+
+            这里明确指定版本，因为 SQLite JDBC 不由 Spring Boot
+            当前的依赖管理替我们确定版本。
+        -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.53.4.0</version>
+        </dependency>
     </dependencies>
 
     <build>
