@@ -98,6 +98,17 @@ public class ReadingImportService {
         ReadingImportDto dto =
                 loadReadingFile(fileName);
 
+        /**
+         * 防止重复导入。
+         *
+         * 如果数据库已经存在相同 externalId，
+         * 就停止导入。
+         */
+        if (readingTestRepository.existsByExternalId(dto.getExternalId())) {
+            throw new IllegalStateException(
+                    "Reading test already imported: " + dto.getExternalId()
+            );
+        }
 
         // =========================
         // 1. 创建 ReadingTest

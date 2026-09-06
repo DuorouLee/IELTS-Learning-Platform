@@ -29,4 +29,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface ReadingTestRepository
         extends JpaRepository<ReadingTest, Long> {
+    /**
+     * 判断某个 externalId 是否已经存在。
+     *
+     * 例如：
+     * p1-high-01
+     *
+     * Spring Data JPA 会根据方法名自动生成查询逻辑。
+     */
+    boolean existsByExternalId(String externalId);
 }
