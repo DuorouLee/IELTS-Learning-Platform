@@ -105,6 +105,7 @@ public class ReadingImportService {
 
         ReadingTest test = new ReadingTest();
 
+        test.setExternalId(dto.getExternalId());
         test.setTitle(dto.getTitle());
         test.setSource(dto.getSource());
 

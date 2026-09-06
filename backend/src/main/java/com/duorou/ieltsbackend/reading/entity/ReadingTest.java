@@ -1,7 +1,6 @@
 package com.duorou.ieltsbackend.reading.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 /**
@@ -72,6 +71,17 @@ public class ReadingTest {
     private LocalDateTime createdAt;
 
     /**
+     * 外部题库中的唯一标识。
+     *
+     * 例如：
+     * p1-high-01
+     *
+     * 用来判断同一份题库是否已经导入。
+     */
+    @Column(name = "external_id", unique = true)
+    private String externalId;
+
+    /**
      * JPA 需要一个无参构造方法。
      *
      * 现在你可以先理解成：
@@ -111,5 +121,13 @@ public class ReadingTest {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 }
