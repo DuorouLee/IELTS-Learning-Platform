@@ -75,6 +75,30 @@ public class ReadingQuestion {
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
+    /**
+     * 当前题目所属的题组 ID。
+     *
+     * 对应数据库 reading_question.group_id。
+     *
+     * 例如：
+     *
+     * QuestionGroup 1
+     *   ├── Question 14
+     *   ├── Question 15
+     *   └── Question 16
+     *
+     * 这些题目的 groupId 都会指向同一个 question_group.id。
+     *
+     * 注意：
+     * 目前旧数据可能还没有 group_id，
+     * 所以这里使用 Long，而不是 long。
+     *
+     * Long 可以为 null，
+     * long 不能为 null。
+     */
+    @Column(name = "group_id")
+    private Long groupId;
+
     public ReadingQuestion() {
     }
 
@@ -132,5 +156,13 @@ public class ReadingQuestion {
 
     public void setExplanation(String explanation) {
         this.explanation = explanation;
+    }
+
+    public Long getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Long groupId) {
+        this.groupId = groupId;
     }
 }
