@@ -92,7 +92,7 @@ class ReadingImportServiceTest {
         );
 
         assertEquals(
-                2,
+                13,
                 dto.getPassages()
                         .get(0)
                         .getQuestions()
@@ -100,11 +100,11 @@ class ReadingImportServiceTest {
         );
 
         assertEquals(
-                "viii",
+                "A",
                 dto.getPassages()
                         .get(0)
                         .getQuestions()
-                        .get(0)
+                        .get(12)
                         .getCorrectAnswer()
         );
     }
