@@ -8,6 +8,8 @@ import com.duorou.ieltsbackend.reading.repository.ReadingPassageRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import com.duorou.ieltsbackend.reading.dto.ReadingTestDetailResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
 
@@ -81,17 +83,28 @@ public class ReadingTestService {
     /**
      * 根据 id 查询一个 Reading Test。
      *
-     * findById() 返回 Optional，
-     * 如果没有找到数据，
-     * 这里暂时直接抛出异常。
+     * findById() 返回 Optional。
      *
-     * 后面做 REST API 时，
-     * 我们会再把这种异常改成更规范的业务异常。
+     * 如果数据库中存在对应 id：
+     * 直接返回 ReadingTest。
+     *
+     * 如果不存在：
+     * 返回 404 Not Found，
+     * 而不是让系统抛出 500 Internal Server Error。
      */
     public ReadingTest findById(Long id) {
+
         return readingTestRepository
                 .findById(id)
-                .orElseThrow();
+
+                // 如果没有找到数据，
+                // 抛出一个带有 HTTP 404 状态码的异常。
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Reading test not found: " + id
+                        )
+                );
     }
 
     /**
@@ -165,7 +178,7 @@ public class ReadingTestService {
                             );
                         })
                         .toList();
-        
+
         return new ReadingTestDetailResponse(
                 test,
                 passageResponses
