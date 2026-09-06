@@ -1,0 +1,52 @@
+{
+  "externalId": "p1-high-01",
+  "title": "A Brief History of Tea",
+  "source": "IELTS Practice Dataset",
+  "passages": [
+    {
+      "passageNumber": 1,
+      "title": "A Brief History of Tea",
+      "content": "Temporary passage content for import testing.",
+      "questions": [
+        {
+          "questionNumber": 1,
+          "questionType": "MATCHING_HEADINGS",
+          "questionText": "Match the correct heading to the paragraph.",
+          "correctAnswer": "viii",
+          "explanation": null,
+          "options": [
+            "i",
+            "ii",
+            "iii",
+            "iv",
+            "v",
+            "vi",
+            "vii",
+            "viii",
+            "ix",
+            "x"
+          ]
+        },
+        {
+          "questionNumber": 2,
+          "questionType": "MATCHING_HEADINGS",
+          "questionText": "Match the correct heading to the paragraph.",
+          "correctAnswer": "iv",
+          "explanation": null,
+          "options": [
+            "i",
+            "ii",
+            "iii",
+            "iv",
+            "v",
+            "vi",
+            "vii",
+            "viii",
+            "ix",
+            "x"
+          ]
+        }
+      ]
+    }
+  ]
+}
