@@ -126,7 +126,7 @@ onMounted(async () => {
           -->
           <ul>
             <li v-for="option in group.options" :key="option.id">
-              <strong>{{ option.optionKey }}</strong>
+              <strong>{{ option.optionValue }}</strong>
               {{ option.optionText }}
             </li>
           </ul>
@@ -162,8 +162,8 @@ onMounted(async () => {
               -->
               <option value="" disabled>请选择答案</option>
 
-              <option v-for="option in group.options" :key="option.id" :value="option.optionKey">
-                {{ option.optionKey }} - {{ option.optionText }}
+              <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                {{ option.optionValue }} - {{ option.optionText }}
               </option>
             </select>
           </div>

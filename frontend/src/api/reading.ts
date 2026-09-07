@@ -43,12 +43,22 @@ export interface ReadingQuestion {
 export interface QuestionOption {
   id: number
 
-  // 显示给用户的选项编号：
-  // A / B / C ...
-  // 或 i / ii / iii ...
-  optionKey: string
+  /**
+   * 后端 QuestionOptionResponse 返回的字段名是 optionValue。
+   *
+   * 例如：
+   * MATCHING_HEADINGS -> "i" / "ii" / "iii"
+   * MATCHING_FEATURES -> "A" / "B" / "C"
+   */
+  optionValue: string
 
-  // 选项真正显示的文字
+  /**
+   * 选项显示文字。
+   *
+   * 例如：
+   * "China"
+   * "Japan"
+   */
   optionText: string
 }
 
