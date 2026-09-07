@@ -13,6 +13,19 @@ public class ReadingPassageImportDto {
 
     private String title;
 
+    /**
+     * 当前 Passage 的公共说明文字。
+     *
+     * 例如：
+     *
+     * You should spend about 20 minutes on Questions 1-13,
+     * which are based on Reading Passage 1 on the following pages.
+     *
+     * 这个字段会从导入 JSON 中读取，
+     * 后面再由 ReadingImportService 写入 ReadingPassage Entity。
+     */
+    private String instruction;
+
     private String content;
 
     /**
@@ -73,5 +86,19 @@ public class ReadingPassageImportDto {
 
     public void setQuestions(List<ReadingQuestionImportDto> questions) {
         this.questions = questions;
+    }
+
+    /**
+     * 获取 Passage 公共说明。
+     */
+    public String getInstruction() {
+        return instruction;
+    }
+
+    /**
+     * 设置 Passage 公共说明。
+     */
+    public void setInstruction(String instruction) {
+        this.instruction = instruction;
     }
 }
