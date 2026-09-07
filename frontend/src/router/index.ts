@@ -17,6 +17,30 @@ const router = createRouter({
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
     },
+    {
+      /**
+       * :testId 是动态路由参数。
+       *
+       * 例如访问：
+       *
+       * /reading/tests/3
+       *
+       * 那么：
+       *
+       * testId = "3"
+       */
+      path: '/reading/tests/:testId',
+
+      name: 'reading-test',
+
+      /**
+       * 使用懒加载。
+       *
+       * 只有访问 Reading 页面时，
+       * 才加载 ReadingTestView.vue。
+       */
+      component: () => import('../views/ReadingTestView.vue'),
+    },
   ],
 })
 

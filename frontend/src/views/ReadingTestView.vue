@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { getFullReadingTest, type FullReadingTestResponse } from '@/api/reading'
+import { useRoute } from 'vue-router'
 
 /**
  * testData
@@ -37,15 +38,37 @@ const loading = ref(true)
 const errorMessage = ref('')
 
 /**
+ * route
+ *
+ * 表示当前浏览器访问的 Vue Router 路由。
+ *
+ * 例如：
+ *
+ * /reading/tests/3
+ */
+const route = useRoute()
+
+/**
  * currentTestId
  *
- * 当前页面正在读取的 Reading Test id。
+ * route.params.testId 默认是字符串。
  *
- * 目前先集中定义在这里，
- * 后续我们接 Vue Router 时，
- * 再把它改成从 URL 参数读取。
+ * 例如 URL：
+ *
+ * /reading/tests/3
+ *
+ * route.params.testId 得到：
+ *
+ * "3"
+ *
+ * Number(...) 把它转换成数字：
+ *
+ * 3
  */
-const currentTestId = 3
+const currentTestId = Number(route.params.testId)
+
+console.log('route.params.testId =', route.params.testId)
+console.log('currentTestId =', currentTestId)
 
 /**
  * answers
