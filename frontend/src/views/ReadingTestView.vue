@@ -373,93 +373,103 @@ watch(
         -->
         <div v-for="group in passage.questionGroups" :key="group.id">
           <!--
-            当前题组的题型。
-
-            例如：
-
-            MATCHING_HEADINGS
-
-            MATCHING_FEATURES
+            MATCHING_HEADINGS 单独使用一套 UI。
           -->
-          <h3>
-            {{ group.questionType }}
-          </h3>
+          <div v-if="group.questionType === 'MATCHING_HEADINGS'">
+            <h3>Matching Headings</h3>
 
-          <!--
-            IELTS 当前题组的答题说明。
-          -->
-          <p>
-            {{ group.instruction }}
-          </p>
-
-          <!--
-            显示当前题组所有可选答案。
-          -->
-          <ul>
-            <li v-for="option in group.options" :key="option.id">
-              <!--
-                optionValue：
-
-                MATCHING_HEADINGS：
-                i / ii / iii ...
-
-                MATCHING_FEATURES：
-                A / B / C ...
-              -->
-              <strong>
-                {{ option.optionValue }}
-              </strong>
-
-              {{ option.optionText }}
-            </li>
-          </ul>
-
-          <!--
-            遍历当前 QuestionGroup 下的所有题目。
-          -->
-          <div v-for="question in group.questions" :key="question.id">
-            <!-- 显示 IELTS 题号 -->
-            <h4>Question {{ question.questionNumber }}</h4>
-
-            <!-- 显示题目正文 -->
+            <!-- IELTS 原始题目说明 -->
             <p>
-              {{ question.questionText }}
+              {{ group.instruction }}
             </p>
 
             <!--
-              用户选择答案。
-
-              v-model 的作用：
-
-              当用户选择一个 option 后，
-
-              Vue 会自动保存：
-
-              answers[question.id] = option.optionValue
+              Headings 选项列表。
 
               例如：
-
-              answers[14] = "viii"
-
-              或：
-
-              answers[22] = "D"
+              i    Not enough tea to meet demand
+              ii   Religious objections
+              iii  ...
             -->
-            <select v-model="answers[question.id]">
-              <!--
-                用户还没有作答时显示。
-              -->
-              <option value="" disabled>请选择答案</option>
+            <div>
+              <h4>List of Headings</h4>
+
+              <ul>
+                <li v-for="option in group.options" :key="option.id">
+                  <strong>
+                    {{ option.optionValue }}
+                  </strong>
+
+                  {{ option.optionText }}
+                </li>
+              </ul>
+            </div>
+
+            <!--
+              每一个 Paragraph 对应一道题。
+            -->
+            <div v-for="question in group.questions" :key="question.id">
+              <p>
+                <strong> {{ question.questionNumber }}. </strong>
+
+                {{ question.questionText }}
+              </p>
 
               <!--
-                当前题组所有可选答案。
+                用户选择 heading。
               -->
-              <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
-                {{ option.optionValue }}
-                -
+              <select v-model="answers[question.id]">
+                <option value="" disabled>请选择 Heading</option>
+
+                <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                  {{ option.optionValue }}
+                  -
+                  {{ option.optionText }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!--
+            其他题型暂时继续沿用现有通用 UI。
+            MATCHING_FEATURES 先不动。
+          -->
+          <div v-else>
+            <h3>
+              {{ group.questionType }}
+            </h3>
+
+            <p>
+              {{ group.instruction }}
+            </p>
+
+            <ul>
+              <li v-for="option in group.options" :key="option.id">
+                <strong>
+                  {{ option.optionValue }}
+                </strong>
+
                 {{ option.optionText }}
-              </option>
-            </select>
+              </li>
+            </ul>
+
+            <div v-for="question in group.questions" :key="question.id">
+              <h4>Question {{ question.questionNumber }}</h4>
+
+              <p>
+                {{ question.questionText }}
+              </p>
+
+              <select v-model="answers[question.id]">
+                <option value="" disabled>请选择答案</option>
+
+                <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                  {{ option.optionValue }}
+                  -
+                  {{ option.optionText }}
+                </option>
+              </select>
+            </div>
           </div>
         </div>
       </section>
