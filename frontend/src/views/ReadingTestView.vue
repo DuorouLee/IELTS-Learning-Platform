@@ -351,187 +351,178 @@ watch(
         遍历当前 Reading Test 的所有 Passage。
       -->
       <section v-for="passage in testData.passages" :key="passage.id">
-        <!-- Passage 编号 -->
+        <!--
+          当前 Passage 的标题。
+          标题暂时放在双栏区域上方。
+        -->
         <h2>Passage {{ passage.passageNumber }}</h2>
 
-        <!-- Passage 正文 -->
-        <p>
-          {{ passage.content }}
-        </p>
-
         <!--
-          遍历当前 Passage 下面的 QuestionGroup。
+          reading-layout
 
-          当前后端结构：
+          这是 Reading 页面双栏布局的最外层容器。
 
-          Passage
-          └── questionGroups
-              ├── questionType
-              ├── instruction
-              ├── options
-              └── questions
+          左边：
+          Passage 正文
+
+          右边：
+          QuestionGroups / Questions
+
+          目前我们只是建立布局骨架，
+          不修改任何答题逻辑。
         -->
-        <div v-for="group in passage.questionGroups" :key="group.id">
+        <div class="reading-layout">
+
           <!--
-            MATCHING_HEADINGS 单独使用一套 UI。
+            左侧区域：
+            专门显示 Passage 正文。
           -->
-          <div v-if="group.questionType === 'MATCHING_HEADINGS'">
-            <h3>Matching Headings</h3>
-
-            <!-- IELTS 原始题目说明 -->
+          <div class="reading-passage">
             <p>
-              {{ group.instruction }}
+              {{ passage.content }}
             </p>
-
-            <!--
-              Headings 选项列表。
-
-              例如：
-              i    Not enough tea to meet demand
-              ii   Religious objections
-              iii  ...
-            -->
-            <div>
-              <h4>List of Headings</h4>
-
-              <ul>
-                <li v-for="option in group.options" :key="option.id">
-                  <strong>
-                    {{ option.optionValue }}
-                  </strong>
-
-                  {{ option.optionText }}
-                </li>
-              </ul>
-            </div>
-
-            <!--
-              每一个 Paragraph 对应一道题。
-            -->
-            <div v-for="question in group.questions" :key="question.id">
-              <p>
-                <strong> {{ question.questionNumber }}. </strong>
-
-                {{ question.questionText }}
-              </p>
-
-              <!--
-                用户选择 heading。
-              -->
-              <select v-model="answers[question.id]">
-                <option value="" disabled>请选择 Heading</option>
-
-                <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
-                  {{ option.optionValue }}
-                  -
-                  {{ option.optionText }}
-                </option>
-              </select>
-            </div>
           </div>
 
           <!--
-            其他题型暂时继续沿用现有通用 UI。
-            MATCHING_FEATURES 先不动。
+            右侧区域：
+            放当前 Passage 下的所有题组。
           -->
-          <!--
-            MATCHING_FEATURES 使用自己的 UI。
-          -->
-          <div v-else-if="group.questionType === 'MATCHING_FEATURES'">
-            <h3>Matching Features</h3>
-
-            <!-- IELTS 原始题目说明 -->
-            <p>
-              {{ group.instruction }}
-            </p>
+          <div class="reading-questions">
 
             <!--
-              当前题组的 Features 选项。
-
-              例如：
-              A China
-              B Japan
-              C Portugal
+              这里继续保留你原来的 QuestionGroup 循环。
             -->
-            <div>
-              <h4>Options</h4>
-
-              <ul>
-                <li v-for="option in group.options" :key="option.id">
-                  <strong>
-                    {{ option.optionValue }}
-                  </strong>
-
-                  {{ option.optionText }}
-                </li>
-              </ul>
-            </div>
-
-            <!--
-              当前题组下面的所有题目。
-            -->
-            <div v-for="question in group.questions" :key="question.id">
-              <p>
-                <strong>
-                  {{ question.questionNumber }}.
-                </strong>
-
-                {{ question.questionText }}
-              </p>
+            <div v-for="group in passage.questionGroups" :key="group.id">
 
               <!--
-                用户选择对应的 Feature。
-
-                v-model 会继续把答案保存到：
-                answers[question.id]
+                MATCHING_HEADINGS
               -->
-              <select v-model="answers[question.id]">
-                <option value="" disabled>
-                  请选择选项
-                </option>
+              <div v-if="group.questionType === 'MATCHING_HEADINGS'">
+                <h3>Matching Headings</h3>
 
-                <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
-                  {{ option.optionValue }}
-                  -
-                  {{ option.optionText }}
-                </option>
-              </select>
-            </div>
-          </div>
+                <p>
+                  {{ group.instruction }}
+                </p>
 
-          <!--
-            其他以后新增、但暂时没有专门 UI 的题型，
-            继续使用通用 fallback。
-          -->
-          <div v-else>
-            <h3>
-              {{ group.questionType }}
-            </h3>
+                <div>
+                  <h4>List of Headings</h4>
 
-            <p>
-              {{ group.instruction }}
-            </p>
+                  <ul>
+                    <li v-for="option in group.options" :key="option.id">
+                      <strong>
+                        {{ option.optionValue }}
+                      </strong>
 
-            <div v-for="question in group.questions" :key="question.id">
-              <p>
-                <strong>
-                  {{ question.questionNumber }}.
-                </strong>
+                      {{ option.optionText }}
+                    </li>
+                  </ul>
+                </div>
 
-                {{ question.questionText }}
-              </p>
+                <div v-for="question in group.questions" :key="question.id">
+                  <p>
+                    <strong>
+                      {{ question.questionNumber }}.
+                    </strong>
 
-              <select v-model="answers[question.id]">
-                <option value="" disabled>
-                  请选择答案
-                </option>
+                    {{ question.questionText }}
+                  </p>
 
-                <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
-                  {{ option.optionValue }}
-                  -
-                  {{ option.optionText }}
-                </option>
-              </select>
+                  <select v-model="answers[question.id]">
+                    <option value="" disabled>
+                      请选择 Heading
+                    </option>
+
+                    <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                      {{ option.optionValue }}
+                      -
+                      {{ option.optionText }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!--
+                MATCHING_FEATURES
+              -->
+              <div v-else-if="group.questionType === 'MATCHING_FEATURES'">
+                <h3>Matching Features</h3>
+
+                <p>
+                  {{ group.instruction }}
+                </p>
+
+                <div>
+                  <h4>Options</h4>
+
+                  <ul>
+                    <li v-for="option in group.options" :key="option.id">
+                      <strong>
+                        {{ option.optionValue }}
+                      </strong>
+
+                      {{ option.optionText }}
+                    </li>
+                  </ul>
+                </div>
+
+                <div v-for="question in group.questions" :key="question.id">
+                  <p>
+                    <strong>
+                      {{ question.questionNumber }}.
+                    </strong>
+
+                    {{ question.questionText }}
+                  </p>
+
+                  <select v-model="answers[question.id]">
+                    <option value="" disabled>
+                      请选择选项
+                    </option>
+
+                    <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                      {{ option.optionValue }}
+                      -
+                      {{ option.optionText }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!--
+                其他题型 fallback
+              -->
+              <div v-else>
+                <h3>
+                  {{ group.questionType }}
+                </h3>
+
+                <p>
+                  {{ group.instruction }}
+                </p>
+
+                <div v-for="question in group.questions" :key="question.id">
+                  <p>
+                    <strong>
+                      {{ question.questionNumber }}.
+                    </strong>
+
+                    {{ question.questionText }}
+                  </p>
+
+                  <select v-model="answers[question.id]">
+                    <option value="" disabled>
+                      请选择答案
+                    </option>
+
+                    <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                      {{ option.optionValue }}
+                      -
+                      {{ option.optionText }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -539,3 +530,36 @@ watch(
     </div>
   </main>
 </template>
+
+<style scoped>
+/*
+  Reading 页面双栏布局。
+
+  display: grid
+  表示这个容器使用 CSS Grid。
+
+  grid-template-columns: 1fr 1fr
+  表示左右两栏各占一半宽度。
+*/
+.reading-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+/*
+  左侧 Passage 区域。
+  目前先不做复杂视觉样式，
+  只确保正文区域可以独立显示。
+*/
+.reading-passage {
+  min-width: 0;
+}
+
+/*
+  右侧 Questions 区域。
+*/
+.reading-questions {
+  min-width: 0;
+}
+</style>
