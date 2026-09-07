@@ -374,19 +374,33 @@ function splitPassageContent(content: string): string[] {
               </div>
 
               <!-- ==================================
-                   MATCHING_FEATURES
+                  MATCHING_FEATURES
               =================================== -->
               <div v-else-if="group.questionType === 'MATCHING_FEATURES'">
                 <h3>
                   Matching Features
                 </h3>
 
+                <!--
+                  IELTS 原始题目说明。
+                -->
                 <p>
                   {{ group.instruction }}
                 </p>
 
-                <!-- Features 选项 -->
-                <div>
+                <!--
+                  Features 参考选项区域。
+
+                  例如：
+
+                  A China
+                  B Japan
+                  C Portugal
+
+                  这一块只是“参考选项”，
+                  所以单独放进 feature-options。
+                -->
+                <div class="feature-options">
                   <h4>
                     Options
                   </h4>
@@ -402,27 +416,38 @@ function splitPassageContent(content: string): string[] {
                   </ul>
                 </div>
 
-                <!-- Features Questions -->
-                <div v-for="question in group.questions" :key="question.id">
-                  <p>
-                    <strong>
-                      {{ question.questionNumber }}.
-                    </strong>
+                <!--
+                  真正的答题区域。
 
-                    {{ question.questionText }}
-                  </p>
+                  每一道题都有自己的 select。
+                -->
+                <div class="question-list">
+                  <div v-for="question in group.questions" :key="question.id" class="question-item">
+                    <p>
+                      <strong>
+                        {{ question.questionNumber }}.
+                      </strong>
 
-                  <select v-model="answers[question.id]">
-                    <option value="" disabled>
-                      请选择选项
-                    </option>
+                      {{ question.questionText }}
+                    </p>
 
-                    <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
-                      {{ option.optionValue }}
-                      -
-                      {{ option.optionText }}
-                    </option>
-                  </select>
+                    <!--
+                      v-model 会继续保存：
+
+                      answers[question.id]
+                    -->
+                    <select v-model="answers[question.id]">
+                      <option value="" disabled>
+                        请选择选项
+                      </option>
+
+                      <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                        {{ option.optionValue }}
+                        -
+                        {{ option.optionText }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -657,5 +682,42 @@ main {
 */
 .question-item p {
   margin-bottom: 6px;
+}
+
+/*
+  ==============================
+  Matching Features 参考选项区域
+  ==============================
+
+  和 Matching Headings 使用同样的视觉结构。
+
+  上面：
+  参考选项
+
+  下面：
+  Questions
+*/
+.feature-options {
+  padding: 16px 20px;
+  margin-bottom: 24px;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+
+  background: #f8f8f8;
+}
+
+/*
+  去掉 Options 标题顶部多余空间。
+*/
+.feature-options h4 {
+  margin-top: 0;
+}
+
+/*
+  去掉列表底部多余空间。
+*/
+.feature-options ul {
+  margin-bottom: 0;
 }
 </style>
