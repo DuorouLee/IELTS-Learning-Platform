@@ -1,12 +1,30 @@
 @import './base.css';
 
+/*
+  #app 是整个 Vue 应用最外层容器。
+
+  Reading 页面需要充分利用浏览器宽度，
+  所以这里取消 Vite 默认的 max-width 限制。
+*/
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  min-height: 100vh;
+
+  /*
+    取消最大宽度限制，
+    让页面可以铺满浏览器。
+  */
+  max-width: none;
+
+  /*
+    不再让 #app 自己增加额外边距和内边距。
+    每个页面自己的间距，由页面内部控制。
+  */
+  margin: 0;
+  padding: 0;
+
   font-weight: normal;
 }
-
 a,
 .green {
   text-decoration: none;
@@ -18,18 +36,5 @@ a,
 @media (hover: hover) {
   a:hover {
     background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
   }
 }

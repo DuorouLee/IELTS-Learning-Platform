@@ -533,71 +533,114 @@ watch(
 
 <style scoped>
 /*
-  Reading 页面双栏容器。
+  让 Reading 页面真正使用浏览器的大部分宽度。
 
-  左边显示文章，
-  右边显示题目。
+  width: 100%
+  表示页面可以使用父容器提供的全部宽度。
 
-  这里使用 CSS Grid，
-  两栏各占一半宽度。
+  max-width: none
+  取消之前可能存在的最大宽度限制。
+*/
+main {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+
+  padding: 32px 48px;
+}
+
+/*
+  Reading 双栏主体。
+
+  左边文章，右边题目。
+
+  这里仍然保持 1 : 1，
+  只是把整体空间真正利用起来。
 */
 .reading-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+
+  /*
+    左右两栏平分整个可用宽度。
+  */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
   gap: 32px;
 
   /*
-    让答题主体区域拥有固定的可视高度。
-
-    100vh：
-    代表浏览器整个窗口高度。
-
-    减去 220px：
-    给页面上面的标题、来源、进度、
-    Passage 标题留出空间。
+    明确要求双栏容器占满 main。
   */
-  height: calc(100vh - 220px);
+  width: 100%;
 
-  /*
-    防止整个双栏区域自己继续向下撑开。
-  */
+  height: calc(100vh - 230px);
   overflow: hidden;
 }
 
 /*
-  左侧 Passage 阅读区域。
+  左侧 Passage。
 */
 .reading-passage {
   min-width: 0;
-
-  /*
-    如果文章高度超过当前区域，
-    左侧自己出现纵向滚动条。
-  */
   overflow-y: auto;
 
   /*
-    右边留一点空间，
-    避免文字紧贴滚动条。
+    增加内边距以后，
+    正文不会紧贴边缘和滚动条。
   */
-  padding-right: 16px;
+  padding: 24px;
+
+  /*
+    给左右区域一个非常轻的边框，
+    让页面结构更清楚。
+  */
+  border: 1px solid #ddd;
+
+  border-radius: 8px;
+
+  /*
+    提高正文阅读舒适度。
+  */
+  line-height: 1.8;
 }
 
 /*
-  右侧答题区域。
+  右侧题目区域。
 */
 .reading-questions {
   min-width: 0;
-
-  /*
-    题目过长时，
-    右侧拥有自己的滚动条。
-  */
   overflow-y: auto;
 
-  /*
-    同样给滚动条留一点空间。
-  */
-  padding-right: 16px;
+  padding: 24px;
+
+  border: 1px solid #ddd;
+
+  border-radius: 8px;
+}
+
+/*
+  select 默认宽度太窄。
+
+  width: 100%
+  让选择框使用当前题目区域的可用宽度。
+
+  max-width:
+  避免在特别宽的屏幕上变得过长。
+*/
+.reading-questions select {
+  width: 100%;
+  max-width: 520px;
+
+  padding: 6px 8px;
+  margin-bottom: 10px;
+}
+
+/*
+  QuestionGroup 之间稍微留出距离。
+
+  后面如果一套 Reading 有多个题型，
+  不会全部挤在一起。
+*/
+.reading-questions>div {
+  margin-bottom: 32px;
 }
 </style>
