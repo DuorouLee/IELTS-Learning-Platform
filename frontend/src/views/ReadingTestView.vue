@@ -434,6 +434,75 @@ watch(
             其他题型暂时继续沿用现有通用 UI。
             MATCHING_FEATURES 先不动。
           -->
+          <!--
+            MATCHING_FEATURES 使用自己的 UI。
+          -->
+          <div v-else-if="group.questionType === 'MATCHING_FEATURES'">
+            <h3>Matching Features</h3>
+
+            <!-- IELTS 原始题目说明 -->
+            <p>
+              {{ group.instruction }}
+            </p>
+
+            <!--
+              当前题组的 Features 选项。
+
+              例如：
+              A China
+              B Japan
+              C Portugal
+            -->
+            <div>
+              <h4>Options</h4>
+
+              <ul>
+                <li v-for="option in group.options" :key="option.id">
+                  <strong>
+                    {{ option.optionValue }}
+                  </strong>
+
+                  {{ option.optionText }}
+                </li>
+              </ul>
+            </div>
+
+            <!--
+              当前题组下面的所有题目。
+            -->
+            <div v-for="question in group.questions" :key="question.id">
+              <p>
+                <strong>
+                  {{ question.questionNumber }}.
+                </strong>
+
+                {{ question.questionText }}
+              </p>
+
+              <!--
+                用户选择对应的 Feature。
+
+                v-model 会继续把答案保存到：
+                answers[question.id]
+              -->
+              <select v-model="answers[question.id]">
+                <option value="" disabled>
+                  请选择选项
+                </option>
+
+                <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                  {{ option.optionValue }}
+                  -
+                  {{ option.optionText }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!--
+            其他以后新增、但暂时没有专门 UI 的题型，
+            继续使用通用 fallback。
+          -->
           <div v-else>
             <h3>
               {{ group.questionType }}
@@ -443,25 +512,19 @@ watch(
               {{ group.instruction }}
             </p>
 
-            <ul>
-              <li v-for="option in group.options" :key="option.id">
+            <div v-for="question in group.questions" :key="question.id">
+              <p>
                 <strong>
-                  {{ option.optionValue }}
+                  {{ question.questionNumber }}.
                 </strong>
 
-                {{ option.optionText }}
-              </li>
-            </ul>
-
-            <div v-for="question in group.questions" :key="question.id">
-              <h4>Question {{ question.questionNumber }}</h4>
-
-              <p>
                 {{ question.questionText }}
               </p>
 
               <select v-model="answers[question.id]">
-                <option value="" disabled>请选择答案</option>
+                <option value="" disabled>
+                  请选择答案
+                </option>
 
                 <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
                   {{ option.optionValue }}
