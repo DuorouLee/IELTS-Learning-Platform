@@ -85,6 +85,23 @@ public class ReadingPassage {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    /**
+     * instruction
+     *
+     * 保存当前 Reading Passage 的公共说明文字。
+     *
+     * 例如：
+     *
+     * You should spend about 20 minutes on Questions 1-13,
+     * which are based on Reading Passage 1 on the following pages.
+     *
+     * 这个字段对应数据库：
+     *
+     * reading_passage.instruction
+     */
+    @Column(name = "instruction")
+    private String instruction;
+
     public ReadingPassage() {
     }
 
@@ -126,5 +143,19 @@ public class ReadingPassage {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    /**
+     * 获取 Passage 的公共说明。
+     */
+    public String getInstruction() {
+        return instruction;
+    }
+
+    /**
+     * 设置 Passage 的公共说明。
+     */
+    public void setInstruction(String instruction) {
+        this.instruction = instruction;
     }
 }
