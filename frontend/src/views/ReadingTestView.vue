@@ -303,8 +303,7 @@ function splitPassageContent(content: string): string[] {
             <!--
               遍历当前 Passage 的 QuestionGroup。
             -->
-            <div v-for="group in passage.questionGroups" :key="group.id">
-
+            <div v-for="group in passage.questionGroups" :key="group.id" class="question-group">
               <!-- ==================================
                    MATCHING_HEADINGS
               =================================== -->
@@ -719,5 +718,29 @@ main {
 */
 .feature-options ul {
   margin-bottom: 0;
+}
+
+/*
+  每一个 QuestionGroup 都作为一个独立区域。
+
+  例如：
+  - Matching Headings
+  - Matching Features
+
+  这样不同题型之间不会视觉上粘在一起。
+*/
+.question-group {
+  padding-bottom: 32px;
+  margin-bottom: 32px;
+
+  border-bottom: 1px solid #e5e5e5;
+}
+
+/*
+  最后一组题不需要底部分隔线。
+*/
+.question-group:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
 }
 </style>
