@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getFullReadingTest, type FullReadingTestResponse } from '@/api/reading'
 import { useRoute } from 'vue-router'
 
@@ -51,24 +51,23 @@ const route = useRoute()
 /**
  * currentTestId
  *
- * route.params.testId 默认是字符串。
+ * 从当前 URL 动态读取 Reading Test id。
  *
- * 例如 URL：
+ * 例如：
  *
  * /reading/tests/3
+ *        ↓
+ * route.params.testId = "3"
+ *        ↓
+ * currentTestId.value = 3
  *
- * route.params.testId 得到：
- *
- * "3"
- *
- * Number(...) 把它转换成数字：
- *
- * 3
+ * 使用 computed 的原因是：
+ * 当 URL 中的 testId 变化时，
+ * currentTestId 也会自动变化。
  */
-const currentTestId = Number(route.params.testId)
-
-console.log('route.params.testId =', route.params.testId)
-console.log('currentTestId =', currentTestId)
+const currentTestId = computed(() => {
+  return Number(route.params.testId)
+})
 
 /**
  * answers
@@ -109,16 +108,17 @@ console.log('currentTestId =', currentTestId)
 const answers = ref<Record<number, string>>({})
 
 /**
- * 根据当前 Test id 自动生成 localStorage key。
+ * 每一套 Reading Test 都有自己独立的答案存储空间。
  *
- * 当前：
+ * Test 3：
  * reading-answers-3
  *
- * 以后如果切换到 Test 4：
+ * Test 4：
  * reading-answers-4
  */
-const localStorageKey = `reading-answers-${currentTestId}`
-
+const localStorageKey = computed(() => {
+  return `reading-answers-${currentTestId.value}`
+})
 /**
  * 监听 answers 的变化。
  *
@@ -131,7 +131,7 @@ const localStorageKey = `reading-answers-${currentTestId}`
 watch(
   answers,
   (newAnswers) => {
-    localStorage.setItem(localStorageKey, JSON.stringify(newAnswers))
+    localStorage.setItem(localStorageKey.value, JSON.stringify(newAnswers))
   },
   {
     /**
@@ -240,31 +240,48 @@ const totalQuestionCount = computed(() => {
 })
 
 /**
- * onMounted
+ * loadReadingTest
  *
- * 当 ReadingTestView 页面加载完成以后，
- * Vue 会自动执行这里的代码。
+ * 根据当前 URL 里的 testId：
+ *
+ * 1. 清理上一套题的页面状态
+ * 2. 恢复当前 Test 的本地答案
+ * 3. 请求后端完整 Reading Test
  */
-onMounted(async () => {
+async function loadReadingTest() {
+  // 开始新的请求。
+  loading.value = true
+
+  // 清掉上一套题留下的错误信息。
+  errorMessage.value = ''
+
+  // 清掉上一套题的数据。
+  testData.value = null
+
+  /**
+   * 先恢复当前 Test 保存过的答案。
+   */
+  const savedAnswers = localStorage.getItem(localStorageKey.value)
+
+  if (savedAnswers) {
+    answers.value = JSON.parse(savedAnswers)
+  } else {
+    /**
+     * 如果当前 Test 从来没有保存过答案，
+     * 就从空答案开始。
+     */
+    answers.value = {}
+  }
+
   try {
     /**
-     * 页面加载时，
-     * 先尝试读取之前保存在 localStorage 的答案。
+     * 根据当前 URL 的 testId 请求后端。
+     *
+     * /reading/tests/3
+     * ↓
+     * GET /api/reading/tests/3/full
      */
-    const savedAnswers = localStorage.getItem(localStorageKey)
-
-    if (savedAnswers) {
-      /**
-       * localStorage 保存的是字符串，
-       * JSON.parse 把它重新变回对象。
-       */
-      answers.value = JSON.parse(savedAnswers)
-    }
-
-    /**
-     * 再读取 Reading Test。
-     */
-    testData.value = await getFullReadingTest(currentTestId)
+    testData.value = await getFullReadingTest(currentTestId.value)
   } catch (error) {
     if (error instanceof Error) {
       errorMessage.value = error.message
@@ -274,7 +291,25 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+/**
+ * 监听 URL 中 testId 的变化。
+ *
+ * immediate: true 表示：
+ * 页面第一次打开时也立即执行一次。
+ *
+ * 所以它同时替代了原来的 onMounted。
+ */
+watch(
+  () => route.params.testId,
+  () => {
+    loadReadingTest()
+  },
+  {
+    immediate: true,
+  },
+)
 </script>
 
 <template>
