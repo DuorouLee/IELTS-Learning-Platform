@@ -114,9 +114,37 @@ onMounted(async () => {
             遍历这个 QuestionGroup 下面真正的题目。
           -->
           <div v-for="question in group.questions" :key="question.id">
+            <!-- 显示题号 -->
             <h4>Question {{ question.questionNumber }}</h4>
 
+            <!-- 显示题目正文 -->
             <p>{{ question.questionText }}</p>
+
+            <!--
+              当前先只做最基础的答案选择框。
+
+              这里的 options 来自当前 QuestionGroup。
+
+              MATCHING_HEADINGS 会显示：
+              i / ii / iii ...
+
+              MATCHING_FEATURES 会显示：
+              A / B / C ...
+            -->
+            <select>
+              <!--
+                默认提示项。
+                disabled 表示用户不能把它当成真正答案。
+              -->
+              <option value="" disabled selected>请选择答案</option>
+
+              <!--
+                遍历当前题组所有可选答案。
+              -->
+              <option v-for="option in group.options" :key="option.id" :value="option.optionKey">
+                {{ option.optionKey }} - {{ option.optionText }}
+              </option>
+            </select>
           </div>
         </div>
       </section>
