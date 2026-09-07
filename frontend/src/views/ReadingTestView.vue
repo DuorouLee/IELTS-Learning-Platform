@@ -310,6 +310,39 @@ watch(
     immediate: true,
   },
 )
+
+/**
+ * splitPassageContent
+ *
+ * 把 Passage 内容拆成更适合阅读的几个部分：
+ *
+ * 1. READING PASSAGE 1 + 时间说明
+ * 2. 文章标题
+ * 3. Paragraph A
+ * 4. Paragraph B
+ * 5. Paragraph C
+ * ...
+ */
+function splitPassageContent(content: string): string[] {
+  return content
+    /**
+     * 第一个规则：
+     * 在文章标题前切开。
+     *
+     * 当前这套题的标题是：
+     * A Brief History of Tea
+     *
+     * 第二个规则：
+     * 在 Paragraph A / B / C ... 前切开。
+     *
+     * (?=...)
+     * 表示只在这个位置切割，
+     * 不会删除后面的文字。
+     */
+    .split(/(?=A Brief History of Tea)|(?=Paragraph [A-Z])/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+}
 </script>
 
 <template>
@@ -378,9 +411,21 @@ watch(
             专门显示 Passage 正文。
           -->
           <div class="reading-passage">
-            <p>
-              {{ passage.content }}
-            </p>
+            <!--
+              把 Passage 拆成多个段落分别显示。
+
+              每一个 contentPart 就是一段：
+              Paragraph A
+              Paragraph B
+              Paragraph C
+              ...
+            -->
+            <div class="passage-content">
+              <p v-for="(contentPart, index) in splitPassageContent(passage.content)" :key="index"
+                class="passage-paragraph">
+                {{ contentPart }}
+              </p>
+            </div>
           </div>
 
           <!--
@@ -642,5 +687,23 @@ main {
 */
 .reading-questions>div {
   margin-bottom: 32px;
+}
+
+/*
+  Passage 正文整体区域。
+*/
+.passage-content {
+  line-height: 1.8;
+}
+
+/*
+  每一个 Paragraph 独立显示。
+
+  margin-bottom：
+  让 Paragraph A、B、C 之间有明显间距，
+  更接近真正的阅读文章。
+*/
+.passage-paragraph {
+  margin: 0 0 20px 0;
 }
 </style>
