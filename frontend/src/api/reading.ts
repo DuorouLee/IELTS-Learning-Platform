@@ -103,7 +103,41 @@ export interface QuestionGroup {
 // 定义 Passage 的数据结构。
 export interface ReadingPassage {
   id: number
+
+  // Passage 编号，例如 1、2、3。
   passageNumber: number
+
+  /**
+   * Passage 标题。
+   *
+   * 例如：
+   * A Brief History of Tea
+   */
+  title: string
+
+  /**
+   * Passage 公共说明。
+   *
+   * 例如：
+   * You should spend about 20 minutes on Questions 1-13,
+   * which are based on Reading Passage 1 on the following pages.
+   *
+   * 这个字段后面会显示在：
+   *
+   * Reading Passage 1
+   * ↓
+   * instruction
+   * ↓
+   * Article / Questions 双栏
+   */
+  instruction: string | null
+
+  /**
+   * Passage 正文。
+   *
+   * 现在 instruction 已经从 content 中拆出来，
+   * 所以 content 只负责文章正文内容。
+   */
   content: string
 
   // 旧结构继续保留。
@@ -114,7 +148,7 @@ export interface ReadingPassage {
 
   // 新结构。
   //
-  // Vue 下一步会主要从这里读取：
+  // Vue 主要从这里读取题组：
   //
   // Passage
   // └── questionGroups
