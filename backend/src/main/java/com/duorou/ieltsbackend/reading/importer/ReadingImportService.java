@@ -159,6 +159,24 @@ public class ReadingImportService {
                     passageDto.getTitle()
             );
 
+            /**
+             * 把导入 JSON 里的 Passage 公共说明，
+             * 写入 ReadingPassage Entity。
+             *
+             * 数据链路：
+             *
+             * JSON instruction
+             * ↓
+             * ReadingPassageImportDto.instruction
+             * ↓
+             * passageDto.getInstruction()
+             * ↓
+             * ReadingPassage.instruction
+             * ↓
+             * reading_passage.instruction
+             */
+            passage.setInstruction(passageDto.getInstruction());
+
             passage.setContent(
                     passageDto.getContent()
             );
