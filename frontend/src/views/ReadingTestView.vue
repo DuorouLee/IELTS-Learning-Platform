@@ -283,7 +283,7 @@ function splitPassageContent(content: string): string[] {
         遍历所有 Passage。
       -->
       <section v-for="passage in testData.passages" :key="passage.id">
-        <h2>
+        <h2 class="passage-heading">
           Passage {{ passage.passageNumber }}
         </h2>
 
@@ -815,6 +815,16 @@ main {
 
   white-space: nowrap;
 
+  font-weight: 600;
+}
+
+/*
+  Passage 标题和下面双栏主体保持更紧凑的间距。
+*/
+.passage-heading {
+  margin: 0 0 12px 0;
+
+  font-size: 20px;
   font-weight: 600;
 }
 </style>
