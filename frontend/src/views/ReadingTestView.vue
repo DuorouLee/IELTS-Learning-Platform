@@ -6,64 +6,46 @@ import { useRoute } from 'vue-router'
 /**
  * testData
  *
- * 用来保存后端：
+ * 保存后端：
  *
  * GET /api/reading/tests/{id}/full
  *
  * 返回的完整 Reading Test 数据。
- *
- * 一开始请求还没有完成，所以是 null。
  */
 const testData = ref<FullReadingTestResponse | null>(null)
 
 /**
  * loading
  *
- * 表示页面当前是否正在请求后端数据。
- *
- * true：
- * 正在加载
- *
- * false：
- * 请求已经结束
+ * true：正在加载
+ * false：请求结束
  */
 const loading = ref(true)
 
 /**
  * errorMessage
  *
- * 如果调用后端 API 失败，
- * 就把错误信息保存在这里。
+ * API 请求失败时保存错误信息。
  */
 const errorMessage = ref('')
 
 /**
  * route
  *
- * 表示当前浏览器访问的 Vue Router 路由。
- *
- * 例如：
- *
- * /reading/tests/3
+ * 当前 Vue Router 路由。
  */
 const route = useRoute()
 
 /**
  * currentTestId
  *
- * 从当前 URL 动态读取 Reading Test id。
+ * 从 URL 中动态读取 testId。
  *
  * 例如：
  *
  * /reading/tests/3
- *        ↓
- * route.params.testId = "3"
- *        ↓
+ * ↓
  * currentTestId.value = 3
- *
- * 使用 computed 的原因是：
- * 当 URL 中的 testId 变化时，
- * currentTestId 也会自动变化。
  */
 const currentTestId = computed(() => {
   return Number(route.params.testId)
@@ -72,9 +54,9 @@ const currentTestId = computed(() => {
 /**
  * answers
  *
- * 用来保存用户当前选择的答案。
+ * 保存用户当前答案。
  *
- * 数据结构类似：
+ * 结构：
  *
  * {
  *   14: "viii",
@@ -83,50 +65,31 @@ const currentTestId = computed(() => {
  * }
  *
  * key：
- * ReadingQuestion 的 id
+ * ReadingQuestion id
  *
  * value：
  * 用户选择的 optionValue
- *
- * 例如：
- *
- * Question id = 14
- * 用户选择 heading "viii"
- *
- * 最终：
- *
- * answers[14] = "viii"
- *
- *
- * Question id = 22
- * 用户选择国家 "D"
- *
- * 最终：
- *
- * answers[22] = "D"
  */
 const answers = ref<Record<number, string>>({})
 
 /**
- * 每一套 Reading Test 都有自己独立的答案存储空间。
+ * 每一套 Reading Test 使用独立的 localStorage key。
  *
- * Test 3：
+ * 例如：
+ *
+ * Test 3
+ * ↓
  * reading-answers-3
- *
- * Test 4：
- * reading-answers-4
  */
 const localStorageKey = computed(() => {
   return `reading-answers-${currentTestId.value}`
 })
+
 /**
- * 监听 answers 的变化。
+ * 监听 answers。
  *
- * 每次用户选择答案后，
- * 都把最新 answers 保存到浏览器 localStorage。
- *
- * localStorage 只能保存字符串，
- * 所以要用 JSON.stringify 转换。
+ * 用户每次改变答案后，
+ * 自动保存到 localStorage。
  */
 watch(
   answers,
@@ -136,7 +99,8 @@ watch(
   {
     /**
      * answers 是对象，
-     * deep: true 表示对象内部字段变化时也能监听到。
+     * 所以需要 deep: true
+     * 才能监听对象内部字段变化。
      */
     deep: true,
   },
@@ -145,34 +109,7 @@ watch(
 /**
  * answeredCount
  *
- * computed 是 Vue 的“计算属性”。
- *
- * 它会根据 answers 自动重新计算。
- *
- * 比如：
- *
- * answers:
- *
- * {
- *   14: "viii",
- *   15: "iv",
- *   16: "ix"
- * }
- *
- * Object.values(answers.value)
- *
- * 得到：
- *
- * ["viii", "iv", "ix"]
- *
- * length = 3
- *
- * 所以页面会显示：
- *
- * 已答：3 / 13
- *
- * 当用户继续选择答案时，
- * answeredCount 会自动更新。
+ * 计算当前已经回答多少道题。
  */
 const answeredCount = computed(() => {
   return Object.values(answers.value).filter((answer) => answer).length
@@ -181,57 +118,24 @@ const answeredCount = computed(() => {
 /**
  * totalQuestionCount
  *
- * 自动计算当前 Reading Test 一共有多少道题。
+ * 自动计算整套 Reading Test 的题目总数。
  *
- * 数据结构是：
+ * 数据结构：
  *
  * testData
  * └── passages
  *     └── questionGroups
  *         └── questions
- *
- * 所以这里需要：
- *
- * 1. 遍历所有 Passage
- * 2. 遍历每个 Passage 的 QuestionGroup
- * 3. 把每个 group.questions.length 加起来
  */
 const totalQuestionCount = computed(() => {
-  /**
-   * 如果后端数据还没加载完成，
-   * testData.value 还是 null，
-   * 那么总题数就是 0。
-   */
   if (!testData.value) {
     return 0
   }
 
-  /**
-   * total 用来累计所有题目的数量。
-   */
   let total = 0
 
-  /**
-   * 遍历所有 Passage。
-   */
   for (const passage of testData.value.passages) {
-    /**
-     * 遍历当前 Passage 下的所有 QuestionGroup。
-     */
     for (const group of passage.questionGroups) {
-      /**
-       * 当前 group.questions.length
-       * 就是这一组有多少道题。
-       *
-       * 例如：
-       *
-       * MATCHING_HEADINGS = 8
-       * MATCHING_FEATURES = 5
-       *
-       * 最终：
-       *
-       * total = 8 + 5 = 13
-       */
       total += group.questions.length
     }
   }
@@ -242,40 +146,31 @@ const totalQuestionCount = computed(() => {
 /**
  * loadReadingTest
  *
- * 根据当前 URL 里的 testId：
+ * 根据当前 URL 中的 testId：
  *
- * 1. 清理上一套题的页面状态
- * 2. 恢复当前 Test 的本地答案
+ * 1. 清理上一套题状态
+ * 2. 恢复 localStorage 答案
  * 3. 请求后端完整 Reading Test
  */
 async function loadReadingTest() {
-  // 开始新的请求。
   loading.value = true
-
-  // 清掉上一套题留下的错误信息。
   errorMessage.value = ''
-
-  // 清掉上一套题的数据。
   testData.value = null
 
   /**
-   * 先恢复当前 Test 保存过的答案。
+   * 恢复当前 Test 的本地答案。
    */
   const savedAnswers = localStorage.getItem(localStorageKey.value)
 
   if (savedAnswers) {
     answers.value = JSON.parse(savedAnswers)
   } else {
-    /**
-     * 如果当前 Test 从来没有保存过答案，
-     * 就从空答案开始。
-     */
     answers.value = {}
   }
 
   try {
     /**
-     * 根据当前 URL 的 testId 请求后端。
+     * 例如：
      *
      * /reading/tests/3
      * ↓
@@ -296,10 +191,8 @@ async function loadReadingTest() {
 /**
  * 监听 URL 中 testId 的变化。
  *
- * immediate: true 表示：
- * 页面第一次打开时也立即执行一次。
- *
- * 所以它同时替代了原来的 onMounted。
+ * immediate: true
+ * 表示页面第一次打开时也立即加载。
  */
 watch(
   () => route.params.testId,
@@ -314,31 +207,20 @@ watch(
 /**
  * splitPassageContent
  *
- * 把 Passage 内容拆成更适合阅读的几个部分：
+ * 把 Passage 内容拆成多个阅读段落。
  *
- * 1. READING PASSAGE 1 + 时间说明
- * 2. 文章标题
- * 3. Paragraph A
- * 4. Paragraph B
- * 5. Paragraph C
- * ...
+ * 当前规则：
+ *
+ * 1. 在文章标题前切割
+ * 2. 在 Paragraph A / B / C ... 前切割
+ *
+ * 注意：
+ * 当前标题 A Brief History of Tea 是临时写法。
+ * 后面更合理的方式是把 title / instruction
+ * 放进后端独立字段。
  */
 function splitPassageContent(content: string): string[] {
   return content
-    /**
-     * 第一个规则：
-     * 在文章标题前切开。
-     *
-     * 当前这套题的标题是：
-     * A Brief History of Tea
-     *
-     * 第二个规则：
-     * 在 Paragraph A / B / C ... 前切开。
-     *
-     * (?=...)
-     * 表示只在这个位置切割，
-     * 不会删除后面的文字。
-     */
     .split(/(?=A Brief History of Tea)|(?=Paragraph [A-Z])/)
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
@@ -348,22 +230,19 @@ function splitPassageContent(content: string): string[] {
 <template>
   <main>
     <!--
-      后端请求还没有完成时显示。
+      后端请求还没有完成。
     -->
     <p v-if="loading">正在加载 Reading Test...</p>
 
     <!--
-      如果 API 请求失败，
-      显示错误信息。
+      API 请求失败。
     -->
     <p v-else-if="errorMessage">
       {{ errorMessage }}
     </p>
 
     <!--
-      请求成功以后，
-      testData 不再是 null，
-      开始显示 Reading Test。
+      请求成功。
     -->
     <div v-else-if="testData">
       <!-- Reading Test 标题 -->
@@ -372,53 +251,41 @@ function splitPassageContent(content: string): string[] {
       </h1>
 
       <!-- 数据来源 -->
-      <p>来源：{{ testData.test.source }}</p>
+      <p>
+        来源：{{ testData.test.source }}
+      </p>
+
+      <!-- 当前答题进度 -->
+      <p>
+        已答：{{ answeredCount }} / {{ totalQuestionCount }}
+      </p>
 
       <!--
-        当前答题进度。
-        answeredCount 会随着 answers 的变化自动更新。
-      -->
-      <p>已答：{{ answeredCount }} / {{ totalQuestionCount }}</p>
-
-      <!--
-        遍历当前 Reading Test 的所有 Passage。
+        遍历所有 Passage。
       -->
       <section v-for="passage in testData.passages" :key="passage.id">
-        <!--
-          当前 Passage 的标题。
-          标题暂时放在双栏区域上方。
-        -->
-        <h2>Passage {{ passage.passageNumber }}</h2>
+        <h2>
+          Passage {{ passage.passageNumber }}
+        </h2>
 
         <!--
-          reading-layout
+          Reading 双栏布局。
 
-          这是 Reading 页面双栏布局的最外层容器。
+          左：
+          Passage
 
-          左边：
-          Passage 正文
-
-          右边：
-          QuestionGroups / Questions
-
-          目前我们只是建立布局骨架，
-          不修改任何答题逻辑。
+          右：
+          QuestionGroups
         -->
         <div class="reading-layout">
 
-          <!--
-            左侧区域：
-            专门显示 Passage 正文。
-          -->
+          <!-- =========================
+               左侧 Passage
+          ========================== -->
           <div class="reading-passage">
-            <!--
-              把 Passage 拆成多个段落分别显示。
 
-              每一个 contentPart 就是一段：
-              Paragraph A
-              Paragraph B
-              Paragraph C
-              ...
+            <!--
+              Passage 正文拆成多个段落。
             -->
             <div class="passage-content">
               <p v-for="(contentPart, index) in splitPassageContent(passage.content)" :key="index"
@@ -428,29 +295,39 @@ function splitPassageContent(content: string): string[] {
             </div>
           </div>
 
-          <!--
-            右侧区域：
-            放当前 Passage 下的所有题组。
-          -->
+          <!-- =========================
+               右侧 Questions
+          ========================== -->
           <div class="reading-questions">
 
             <!--
-              这里继续保留你原来的 QuestionGroup 循环。
+              遍历当前 Passage 的 QuestionGroup。
             -->
             <div v-for="group in passage.questionGroups" :key="group.id">
 
-              <!--
-                MATCHING_HEADINGS
-              -->
+              <!-- ==================================
+                   MATCHING_HEADINGS
+              =================================== -->
               <div v-if="group.questionType === 'MATCHING_HEADINGS'">
-                <h3>Matching Headings</h3>
+                <h3>
+                  Matching Headings
+                </h3>
 
+                <!-- IELTS 原始题目说明 -->
                 <p>
                   {{ group.instruction }}
                 </p>
 
-                <div>
-                  <h4>List of Headings</h4>
+                <!--
+                  Headings 参考选项区域。
+
+                  这里和下面的答题区域单独分开，
+                  让页面结构更加清楚。
+                -->
+                <div class="heading-options">
+                  <h4>
+                    List of Headings
+                  </h4>
 
                   <ul>
                     <li v-for="option in group.options" :key="option.id">
@@ -463,41 +340,56 @@ function splitPassageContent(content: string): string[] {
                   </ul>
                 </div>
 
-                <div v-for="question in group.questions" :key="question.id">
-                  <p>
-                    <strong>
-                      {{ question.questionNumber }}.
-                    </strong>
+                <!--
+                  真正的 Questions 答题区域。
+                -->
+                <div class="question-list">
+                  <div v-for="question in group.questions" :key="question.id" class="question-item">
+                    <p>
+                      <strong>
+                        {{ question.questionNumber }}.
+                      </strong>
 
-                    {{ question.questionText }}
-                  </p>
+                      {{ question.questionText }}
+                    </p>
 
-                  <select v-model="answers[question.id]">
-                    <option value="" disabled>
-                      请选择 Heading
-                    </option>
+                    <!--
+                      v-model 会把用户答案保存到：
 
-                    <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
-                      {{ option.optionValue }}
-                      -
-                      {{ option.optionText }}
-                    </option>
-                  </select>
+                      answers[question.id]
+                    -->
+                    <select v-model="answers[question.id]">
+                      <option value="" disabled>
+                        请选择 Heading
+                      </option>
+
+                      <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                        {{ option.optionValue }}
+                        -
+                        {{ option.optionText }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <!--
-                MATCHING_FEATURES
-              -->
+              <!-- ==================================
+                   MATCHING_FEATURES
+              =================================== -->
               <div v-else-if="group.questionType === 'MATCHING_FEATURES'">
-                <h3>Matching Features</h3>
+                <h3>
+                  Matching Features
+                </h3>
 
                 <p>
                   {{ group.instruction }}
                 </p>
 
+                <!-- Features 选项 -->
                 <div>
-                  <h4>Options</h4>
+                  <h4>
+                    Options
+                  </h4>
 
                   <ul>
                     <li v-for="option in group.options" :key="option.id">
@@ -510,6 +402,7 @@ function splitPassageContent(content: string): string[] {
                   </ul>
                 </div>
 
+                <!-- Features Questions -->
                 <div v-for="question in group.questions" :key="question.id">
                   <p>
                     <strong>
@@ -533,9 +426,9 @@ function splitPassageContent(content: string): string[] {
                 </div>
               </div>
 
-              <!--
-                其他题型 fallback
-              -->
+              <!-- ==================================
+                   通用 fallback
+              =================================== -->
               <div v-else>
                 <h3>
                   {{ group.questionType }}
@@ -578,13 +471,13 @@ function splitPassageContent(content: string): string[] {
 
 <style scoped>
 /*
-  让 Reading 页面真正使用浏览器的大部分宽度。
+  Reading 页面整体区域。
 
   width: 100%
-  表示页面可以使用父容器提供的全部宽度。
+  使用父容器全部可用宽度。
 
-  max-width: none
-  取消之前可能存在的最大宽度限制。
+  box-sizing: border-box
+  让 padding 计算在 width 内部。
 */
 main {
   width: 100%;
@@ -597,59 +490,55 @@ main {
 /*
   Reading 双栏主体。
 
-  左边文章，右边题目。
+  左侧：
+  Passage
 
-  这里仍然保持 1 : 1，
-  只是把整体空间真正利用起来。
+  右侧：
+  Questions
 */
 .reading-layout {
   display: grid;
 
   /*
-    左右两栏平分整个可用宽度。
+    两栏平均分配空间。
+
+    minmax(0, 1fr)
+    可以避免里面的长文本或 select
+    把 Grid 列强行撑宽。
   */
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 
   gap: 32px;
-
-  /*
-    明确要求双栏容器占满 main。
-  */
   width: 100%;
 
+  /*
+    给顶部标题区域留出空间。
+
+    超出区域后，
+    左右栏自己滚动。
+  */
   height: calc(100vh - 230px);
+
   overflow: hidden;
 }
 
 /*
-  左侧 Passage。
+  左侧 Passage 区域。
 */
 .reading-passage {
   min-width: 0;
   overflow-y: auto;
 
-  /*
-    增加内边距以后，
-    正文不会紧贴边缘和滚动条。
-  */
   padding: 24px;
 
-  /*
-    给左右区域一个非常轻的边框，
-    让页面结构更清楚。
-  */
   border: 1px solid #ddd;
-
   border-radius: 8px;
 
-  /*
-    提高正文阅读舒适度。
-  */
   line-height: 1.8;
 }
 
 /*
-  右侧题目区域。
+  右侧答题区域。
 */
 .reading-questions {
   min-width: 0;
@@ -658,18 +547,17 @@ main {
   padding: 24px;
 
   border: 1px solid #ddd;
-
   border-radius: 8px;
 }
 
 /*
-  select 默认宽度太窄。
+  右侧 select。
 
   width: 100%
-  让选择框使用当前题目区域的可用宽度。
+  尽量占据当前题目区域。
 
   max-width:
-  避免在特别宽的屏幕上变得过长。
+  防止宽屏时 select 太长。
 */
 .reading-questions select {
   width: 100%;
@@ -680,30 +568,94 @@ main {
 }
 
 /*
-  QuestionGroup 之间稍微留出距离。
-
-  后面如果一套 Reading 有多个题型，
-  不会全部挤在一起。
+  QuestionGroup 之间保留距离。
 */
 .reading-questions>div {
   margin-bottom: 32px;
 }
 
 /*
-  Passage 正文整体区域。
+  Passage 正文整体。
 */
 .passage-content {
   line-height: 1.8;
 }
 
 /*
-  每一个 Paragraph 独立显示。
-
-  margin-bottom：
-  让 Paragraph A、B、C 之间有明显间距，
-  更接近真正的阅读文章。
+  Passage 每个独立段落。
 */
 .passage-paragraph {
   margin: 0 0 20px 0;
+}
+
+/*
+  ==============================
+  Matching Headings 参考选项区域
+  ==============================
+
+  这里把 List of Headings
+  独立成一个视觉区域。
+
+  目的：
+  用户可以明显区分：
+
+  上面 = 可以参考的 headings
+
+  下面 = 真正需要作答的问题
+*/
+.heading-options {
+  padding: 16px 20px;
+  margin-bottom: 24px;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+
+  background: #f8f8f8;
+}
+
+/*
+  List of Headings 标题。
+
+  去掉顶部默认 margin，
+  避免卡片顶部留白太大。
+*/
+.heading-options h4 {
+  margin-top: 0;
+}
+
+/*
+  Headings 列表底部不再额外留白。
+*/
+.heading-options ul {
+  margin-bottom: 0;
+}
+
+/*
+  ==============================
+  Matching Headings 答题区域
+  ==============================
+
+  和上面的参考选项保持一定距离。
+*/
+.question-list {
+  padding-top: 8px;
+}
+
+/*
+  每一道题之间稍微分开。
+
+  这样 Question 1、2、3
+  不会全部挤在一起。
+*/
+.question-item {
+  margin-bottom: 16px;
+}
+
+/*
+  Question 文本和 select
+  之间不要产生过大的默认间距。
+*/
+.question-item p {
+  margin-bottom: 6px;
 }
 </style>
