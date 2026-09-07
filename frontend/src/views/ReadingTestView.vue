@@ -533,33 +533,71 @@ watch(
 
 <style scoped>
 /*
-  Reading 页面双栏布局。
+  Reading 页面双栏容器。
 
-  display: grid
-  表示这个容器使用 CSS Grid。
+  左边显示文章，
+  右边显示题目。
 
-  grid-template-columns: 1fr 1fr
-  表示左右两栏各占一半宽度。
+  这里使用 CSS Grid，
+  两栏各占一半宽度。
 */
 .reading-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 32px;
+
+  /*
+    让答题主体区域拥有固定的可视高度。
+
+    100vh：
+    代表浏览器整个窗口高度。
+
+    减去 220px：
+    给页面上面的标题、来源、进度、
+    Passage 标题留出空间。
+  */
+  height: calc(100vh - 220px);
+
+  /*
+    防止整个双栏区域自己继续向下撑开。
+  */
+  overflow: hidden;
 }
 
 /*
-  左侧 Passage 区域。
-  目前先不做复杂视觉样式，
-  只确保正文区域可以独立显示。
+  左侧 Passage 阅读区域。
 */
 .reading-passage {
   min-width: 0;
+
+  /*
+    如果文章高度超过当前区域，
+    左侧自己出现纵向滚动条。
+  */
+  overflow-y: auto;
+
+  /*
+    右边留一点空间，
+    避免文字紧贴滚动条。
+  */
+  padding-right: 16px;
 }
 
 /*
-  右侧 Questions 区域。
+  右侧答题区域。
 */
 .reading-questions {
   min-width: 0;
+
+  /*
+    题目过长时，
+    右侧拥有自己的滚动条。
+  */
+  overflow-y: auto;
+
+  /*
+    同样给滚动条留一点空间。
+  */
+  padding-right: 16px;
 }
 </style>
