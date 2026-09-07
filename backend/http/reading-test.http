@@ -67,3 +67,15 @@ GET http://localhost:8080/api/reading/tests/1/passages
 
 ### 查询完整 ReadingTest
 GET http://localhost:8080/api/reading/tests/1/full
+
+### 导入 Reading 数据
+POST http://localhost:8080/api/reading/import/p1-high-01-converted.json
+
+###
+GET http://localhost:8080/api/reading/tests
+
+###
+GET http://localhost:8080/api/reading/tests/2/full
+
+###
+GET http://localhost:8080/api/reading/tests/3/full

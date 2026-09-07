@@ -284,7 +284,7 @@ function splitPassageContent(content: string): string[] {
       -->
       <section v-for="passage in testData.passages" :key="passage.id">
         <h2 class="passage-heading">
-          Passage {{ passage.passageNumber }}
+          Reading Passage {{ passage.passageNumber }}
         </h2>
 
         <!--
@@ -302,6 +302,9 @@ function splitPassageContent(content: string): string[] {
                左侧 Passage
           ========================== -->
           <div class="reading-passage">
+            <h3 class="panel-title">
+              Article
+            </h3>
 
             <!--
               Passage 正文拆成多个段落。
@@ -318,6 +321,9 @@ function splitPassageContent(content: string): string[] {
                右侧 Questions
           ========================== -->
           <div class="reading-questions">
+            <h3 class="panel-title">
+              Questions
+            </h3>
 
             <!--
               遍历当前 Passage 的 QuestionGroup。
@@ -825,6 +831,23 @@ main {
   margin: 0 0 12px 0;
 
   font-size: 20px;
+  font-weight: 600;
+}
+
+/*
+  左右栏区域标题。
+
+  作用：
+  明确告诉用户当前区域是 Passage 还是 Questions。
+*/
+.panel-title {
+  margin: 0 0 16px 0;
+
+  padding-bottom: 10px;
+
+  border-bottom: 1px solid #e5e5e5;
+
+  font-size: 18px;
   font-weight: 600;
 }
 </style>

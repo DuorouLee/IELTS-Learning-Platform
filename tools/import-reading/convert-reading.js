@@ -89,6 +89,44 @@ function stripHtml(html) {
 
 /**
  * ------------------------------------------------------------
+ * 提取 Passage 公共 instruction
+ * ------------------------------------------------------------
+ *
+ * 当前真实 IELTS 数据中，Passage 开头会包含类似：
+ *
+ * You should spend about 20 minutes on Questions 1-13,
+ * which are based on Reading Passage 1 on the following pages.
+ *
+ * 这句话属于整个 Passage，
+ * Article 和 Questions 都共享，
+ * 所以不应该继续混在 content 中。
+ */
+function extractPassageInstruction(text) {
+  /**
+   * 匹配：
+   *
+   * You should spend ...
+   * ...
+   * on the following pages.
+   *
+   * [\s\S]
+   * 表示可以跨越普通字符和换行。
+   */
+  const match = text.match(/You should spend[\s\S]*?on the following pages\./i);
+
+  if (!match) {
+    /**
+     * 如果以后遇到不同格式的题库，
+     * 不在这里编造 instruction。
+     */
+    return null;
+  }
+
+  return match[0].replace(/\s+/g, " ").trim();
+}
+
+/**
+ * ------------------------------------------------------------
  * 把 questionId 转成题号
  * ------------------------------------------------------------
  *
@@ -416,19 +454,29 @@ function convertQuestionGroup(group) {
 }
 
 /**
- * ------------------------------------------------------------
- * Passage 正文
- * ------------------------------------------------------------
- *
- * 你的当前源文件 passage.blocks 中，
- * 正文保存在 html 字段。
- *
- * 第一版先把所有 block HTML 拼起来，
- * 再去掉 HTML 标签。
+ * 先得到原始 Passage 全部文本。
  */
-const passageContent = source.passage.blocks
+const rawPassageContent = source.passage.blocks
   .map((block) => stripHtml(block.html))
   .join("\n\n");
+
+/**
+ * 从完整文本中提取 Passage 公共说明。
+ */
+const passageInstruction = extractPassageInstruction(rawPassageContent);
+
+/**
+ * 从正文中删除已经提取出来的 instruction。
+ *
+ * 这样可以避免前端同时显示：
+ *
+ * instruction
+ * +
+ * content 里面重复的 instruction
+ */
+const passageContent = passageInstruction
+  ? rawPassageContent.replace(passageInstruction, "").trim()
+  : rawPassageContent;
 
 /**
  * ------------------------------------------------------------
@@ -458,6 +506,19 @@ const result = {
       passageNumber: 1,
 
       title: source.meta.title,
+
+      /**
+       * Passage 公共说明。
+       *
+       * JSON
+       * ↓
+       * ReadingPassageImportDto
+       * ↓
+       * ReadingImportService
+       * ↓
+       * SQLite
+       */
+      instruction: passageInstruction,
 
       content: passageContent,
 
