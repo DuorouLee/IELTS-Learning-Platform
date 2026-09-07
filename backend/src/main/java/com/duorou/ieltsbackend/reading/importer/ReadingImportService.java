@@ -283,10 +283,11 @@ public class ReadingImportService {
                      * 这些 Question 没有 QuestionGroup，
                      * 所以 groupId 会保持 null。
                      */
-                    if (passageDto.getQuestions() != null) {
+
+                    if (groupDto.getQuestions() != null) {
 
                         for (ReadingQuestionImportDto questionDto
-                                : passageDto.getQuestions()) {
+                                : groupDto.getQuestions()) {
 
                             ReadingQuestion question =
                                     new ReadingQuestion();
@@ -311,8 +312,23 @@ public class ReadingImportService {
                                     questionDto.getExplanation()
                             );
 
+                            /**
+                             * 旧关系：
+                             * Question 仍然属于 Passage。
+                             */
                             question.setReadingPassage(
                                     savedPassage
+                            );
+
+                            /**
+                             * 新关系：
+                             * Question 同时属于当前 QuestionGroup。
+                             *
+                             * 这里会写入：
+                             * reading_question.group_id
+                             */
+                            question.setGroupId(
+                                    savedGroup.getId()
                             );
 
                             readingQuestionRepository.save(
@@ -326,47 +342,52 @@ public class ReadingImportService {
             // =========================
             // 4. 遍历当前 Passage 的 Questions
             // =========================
+            /**
+             * 兼容旧版 JSON：
+             *
+             * Passage
+             *    ↓
+             * Questions
+             *
+             * 新版 JSON 的问题已经放进 questionGroups，
+             * 所以这里只处理旧数据。
+             */
+            if (passageDto.getQuestions() != null) {
 
-            for (ReadingQuestionImportDto questionDto
-                    : passageDto.getQuestions()) {
+                for (ReadingQuestionImportDto questionDto
+                        : passageDto.getQuestions()) {
 
-                ReadingQuestion question =
-                        new ReadingQuestion();
+                    ReadingQuestion question =
+                            new ReadingQuestion();
 
-                question.setQuestionNumber(
-                        questionDto.getQuestionNumber()
-                );
+                    question.setQuestionNumber(
+                            questionDto.getQuestionNumber()
+                    );
 
-                question.setQuestionType(
-                        questionDto.getQuestionType()
-                );
+                    question.setQuestionType(
+                            questionDto.getQuestionType()
+                    );
 
-                question.setQuestionText(
-                        questionDto.getQuestionText()
-                );
+                    question.setQuestionText(
+                            questionDto.getQuestionText()
+                    );
 
-                question.setCorrectAnswer(
-                        questionDto.getCorrectAnswer()
-                );
+                    question.setCorrectAnswer(
+                            questionDto.getCorrectAnswer()
+                    );
 
-                question.setExplanation(
-                        questionDto.getExplanation()
-                );
+                    question.setExplanation(
+                            questionDto.getExplanation()
+                    );
 
-                /**
-                 * 建立关系：
-                 *
-                 * ReadingPassage
-                 *     ↓
-                 * ReadingQuestion
-                 */
-                question.setReadingPassage(
-                        savedPassage
-                );
+                    question.setReadingPassage(
+                            savedPassage
+                    );
 
-                readingQuestionRepository.save(
-                        question
-                );
+                    readingQuestionRepository.save(
+                            question
+                    );
+                }
             }
         }
 
