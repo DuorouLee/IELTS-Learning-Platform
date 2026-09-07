@@ -3,21 +3,35 @@ package com.duorou.ieltsbackend.reading.repository;
 import com.duorou.ieltsbackend.reading.entity.QuestionGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 /**
  * QuestionGroupRepository
  *
- * 负责操作数据库中的 question_group 表。
- *
- * 因为继承 JpaRepository，
- * Spring Data JPA 会自动提供常用数据库操作，例如：
- *
- * save()       保存或更新 QuestionGroup
- * findById()   根据 id 查询
- * findAll()    查询全部
- * deleteById() 根据 id 删除
- *
- * 所以目前不需要自己写 SQL。
+ * 负责 question_group 表的数据库操作。
  */
 public interface QuestionGroupRepository
         extends JpaRepository<QuestionGroup, Long> {
+
+    /**
+     * 查询某一篇 ReadingPassage 下的所有题组。
+     *
+     * 方法名中的：
+     *
+     * ReadingPassage_Id
+     *
+     * 会被 Spring Data JPA 自动解析为：
+     *
+     * QuestionGroup.readingPassage.id
+     *
+     * 也就是类似 SQL：
+     *
+     * SELECT *
+     * FROM question_group
+     * WHERE passage_id = ?
+     *
+     * @param passageId ReadingPassage 的数据库 ID
+     * @return 当前 Passage 下的所有 QuestionGroup
+     */
+    List<QuestionGroup> findByReadingPassage_Id(Long passageId);
 }

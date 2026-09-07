@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -106,6 +108,53 @@ class QuestionGroupRepositoryTest {
         assertEquals(
                 passage.getId(),
                 savedGroup.getReadingPassage().getId()
+        );
+    }
+
+    @Test
+    void shouldFindQuestionGroupsByPassageId() {
+
+        // 1. 创建 ReadingTest
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Find Question Group Test");
+        readingTest.setSource("Test");
+
+        readingTest = readingTestRepository.save(readingTest);
+
+
+        // 2. 创建 ReadingPassage
+        ReadingPassage passage = new ReadingPassage();
+        passage.setReadingTest(readingTest);
+        passage.setPassageNumber(1);
+        passage.setContent("This is a test passage.");
+
+        passage = readingPassageRepository.save(passage);
+
+
+        // 3. 创建 QuestionGroup
+        QuestionGroup group = new QuestionGroup();
+
+        group.setReadingPassage(passage);
+        group.setQuestionType("MATCHING_HEADINGS");
+        group.setInstruction("Choose the correct heading.");
+        group.setAllowOptionReuse(false);
+
+        questionGroupRepository.save(group);
+
+
+        // 4. 根据 passageId 查询题组
+        List<QuestionGroup> groups =
+                questionGroupRepository.findByReadingPassage_Id(
+                        passage.getId()
+                );
+
+
+        // 5. 验证
+        assertFalse(groups.isEmpty());
+
+        assertEquals(
+                "MATCHING_HEADINGS",
+                groups.get(0).getQuestionType()
         );
     }
 }
