@@ -12,6 +12,27 @@ const loading = ref(true)
 // errorMessage 用来保存错误信息。
 const errorMessage = ref('')
 
+/**
+ * answers 用来保存用户当前选择的答案。
+ *
+ * 数据结构类似：
+ *
+ * {
+ *   14: "viii",
+ *   15: "iv",
+ *   22: "D"
+ * }
+ *
+ * key：
+ * ReadingQuestion 的 id
+ *
+ * value：
+ * 用户选择的 optionKey
+ *
+ * 这样每一道题都有自己独立的答案状态。
+ */
+const answers = ref<Record<number, string>>({})
+
 // onMounted 表示：
 // 当这个 Vue 页面加载完成后，自动执行里面的代码。
 onMounted(async () => {
@@ -131,16 +152,16 @@ onMounted(async () => {
               MATCHING_FEATURES 会显示：
               A / B / C ...
             -->
-            <select>
+            <select v-model="answers[question.id]">
               <!--
-                默认提示项。
-                disabled 表示用户不能把它当成真正答案。
-              -->
-              <option value="" disabled selected>请选择答案</option>
+                value="" 表示目前还没有选择答案。
 
-              <!--
-                遍历当前题组所有可选答案。
+                因为现在使用了 v-model，
+                Vue 会自动把用户选中的 value
+                保存到 answers[question.id]。
               -->
+              <option value="" disabled>请选择答案</option>
+
               <option v-for="option in group.options" :key="option.id" :value="option.optionKey">
                 {{ option.optionKey }} - {{ option.optionText }}
               </option>
