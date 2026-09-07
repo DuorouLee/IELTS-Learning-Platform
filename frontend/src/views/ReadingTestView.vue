@@ -17,8 +17,13 @@ const errorMessage = ref('')
 onMounted(async () => {
   try {
     // 调用我们刚才写的 API 方法。
-    // 这里先固定获取 id = 1 的 Reading Test。
-    testData.value = await getFullReadingTest(1)
+    // 目前先固定读取刚刚重新导入成功的 Reading Test。
+    //
+    // 当前数据库中这份完整新结构数据的 id = 3。
+    //
+    // 后续我们会再把这里改成从路由参数读取，
+    // 现在先不提前做，保持当前阶段最简单。
+    testData.value = await getFullReadingTest(3)
   } catch (error) {
     // 如果请求失败，就显示错误信息。
     if (error instanceof Error) {
@@ -55,11 +60,64 @@ onMounted(async () => {
 
         <p>{{ passage.content }}</p>
 
-        <!-- 遍历当前 Passage 里的 Question -->
-        <div v-for="question in passage.questions" :key="question.id">
-          <h3>Question {{ question.questionNumber }}</h3>
+        <!--
+          遍历当前 Passage 里的 QuestionGroup。
 
-          <p>{{ question.questionText }}</p>
+          后端现在返回的结构是：
+
+          Passage
+          └── questionGroups
+              ├── questionType
+              ├── instruction
+              ├── options
+              └── questions
+        -->
+        <div v-for="group in passage.questionGroups" :key="group.id">
+          <!--
+            显示当前题组的题型。
+
+            例如：
+            MATCHING_HEADINGS
+            MATCHING_FEATURES
+          -->
+          <h3>{{ group.questionType }}</h3>
+
+          <!--
+            IELTS 原始答题说明。
+
+            例如：
+            Choose the correct heading for each paragraph...
+          -->
+          <p>{{ group.instruction }}</p>
+
+          <!--
+            显示当前题组可以选择的所有答案。
+
+            MATCHING_HEADINGS:
+            i   xxx
+            ii  xxx
+            iii xxx
+
+            MATCHING_FEATURES:
+            A   xxx
+            B   xxx
+            C   xxx
+          -->
+          <ul>
+            <li v-for="option in group.options" :key="option.id">
+              <strong>{{ option.optionKey }}</strong>
+              {{ option.optionText }}
+            </li>
+          </ul>
+
+          <!--
+            遍历这个 QuestionGroup 下面真正的题目。
+          -->
+          <div v-for="question in group.questions" :key="question.id">
+            <h4>Question {{ question.questionNumber }}</h4>
+
+            <p>{{ question.questionText }}</p>
+          </div>
         </div>
       </section>
     </div>
