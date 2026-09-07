@@ -151,3 +151,60 @@ export async function getFullReadingTest(testId: number): Promise<FullReadingTes
   // 把后端返回的 JSON 转成 JavaScript / TypeScript 对象。
   return response.json()
 }
+
+/**
+ * 获取所有 Reading Test。
+ *
+ * 对应 Spring Boot：
+ *
+ * GET /api/reading/tests
+ *
+ * 后端返回的数据类似：
+ *
+ * [
+ *   {
+ *     "id": 3,
+ *     "title": "A Brief History of Tea",
+ *     "source": "...",
+ *     "createdAt": "..."
+ *   }
+ * ]
+ *
+ * 返回类型：
+ *
+ * Promise<ReadingTest[]>
+ *
+ * 表示这个异步请求最终会得到
+ * 一个 ReadingTest 数组。
+ */
+export async function getReadingTests(): Promise<ReadingTest[]> {
+  /**
+   * 调用 Spring Boot 的 Reading Test 列表接口。
+   */
+  const response = await fetch(`${API_BASE_URL}/api/reading/tests`)
+
+  /**
+   * 如果后端返回的不是 2xx，
+   * 就主动抛出异常。
+   *
+   * 后面 HomeView 可以捕获这个错误
+   * 并显示错误提示。
+   */
+  if (!response.ok) {
+    throw new Error(`获取 Reading Test 列表失败：${response.status}`)
+  }
+
+  /**
+   * response.json()
+   *
+   * 把后端 JSON：
+   *
+   * [
+   *   {...},
+   *   {...}
+   * ]
+   *
+   * 转换成 JavaScript / TypeScript 数组。
+   */
+  return response.json()
+}
