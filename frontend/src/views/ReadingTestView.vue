@@ -37,6 +37,17 @@ const loading = ref(true)
 const errorMessage = ref('')
 
 /**
+ * currentTestId
+ *
+ * 当前页面正在读取的 Reading Test id。
+ *
+ * 目前先集中定义在这里，
+ * 后续我们接 Vue Router 时，
+ * 再把它改成从 URL 参数读取。
+ */
+const currentTestId = 3
+
+/**
  * answers
  *
  * 用来保存用户当前选择的答案。
@@ -75,14 +86,15 @@ const errorMessage = ref('')
 const answers = ref<Record<number, string>>({})
 
 /**
- * localStorageKey
+ * 根据当前 Test id 自动生成 localStorage key。
  *
- * 用当前 Reading Test 的 id 区分不同套题。
- *
- * 例如：
+ * 当前：
  * reading-answers-3
+ *
+ * 以后如果切换到 Test 4：
+ * reading-answers-4
  */
-const localStorageKey = 'reading-answers-3'
+const localStorageKey = `reading-answers-${currentTestId}`
 
 /**
  * 监听 answers 的变化。
@@ -229,7 +241,7 @@ onMounted(async () => {
     /**
      * 再读取 Reading Test。
      */
-    testData.value = await getFullReadingTest(3)
+    testData.value = await getFullReadingTest(currentTestId)
   } catch (error) {
     if (error instanceof Error) {
       errorMessage.value = error.message
