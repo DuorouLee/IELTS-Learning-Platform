@@ -12,8 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import com.duorou.ieltsbackend.reading.dto.ReadingTestDetailResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
-
-
+import com.duorou.ieltsbackend.reading.entity.QuestionGroup;
+import com.duorou.ieltsbackend.reading.repository.QuestionGroupRepository;
 
 import java.util.List;
 
@@ -51,6 +51,8 @@ public class ReadingTestService {
 
     private final ReadingQuestionRepository readingQuestionRepository;
 
+    private final QuestionGroupRepository questionGroupRepository;
+
     /**
      * 构造器注入。
      *
@@ -63,11 +65,13 @@ public class ReadingTestService {
     public ReadingTestService(
             ReadingTestRepository readingTestRepository,
             ReadingPassageRepository readingPassageRepository,
-            ReadingQuestionRepository readingQuestionRepository
+            ReadingQuestionRepository readingQuestionRepository,
+            QuestionGroupRepository questionGroupRepository
     ) {
         this.readingTestRepository = readingTestRepository;
         this.readingPassageRepository = readingPassageRepository;
         this.readingQuestionRepository = readingQuestionRepository;
+        this.questionGroupRepository = questionGroupRepository;
     }
 
     /**
@@ -138,6 +142,22 @@ public class ReadingTestService {
         List<ReadingQuestion> questions =
                 readingQuestionRepository.findByReadingPassageReadingTestId(testId);
 
+        /**
+         * 查询当前 Reading Test 下每一个 Passage 对应的 QuestionGroup。
+         *
+         * 目前先把所有题组查出来，
+         * 下一步再把它们放进 DTO 返回给前端。
+         */
+        List<QuestionGroup> questionGroups =
+                passages.stream()
+                        .flatMap(passage ->
+                                questionGroupRepository
+                                        .findByReadingPassage_Id(passage.getId())
+                                        .stream()
+                        )
+                        .toList();
+
+        System.out.println("Question groups count = " + questionGroups.size());
 
         List<ReadingPassageResponse> passageResponses =
                 passages.stream()
