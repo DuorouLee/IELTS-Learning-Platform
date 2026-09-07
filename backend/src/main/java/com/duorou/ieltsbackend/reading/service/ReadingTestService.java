@@ -275,6 +275,7 @@ public class ReadingTestService {
                                     passage.getId(),
                                     passage.getPassageNumber(),
                                     passage.getTitle(),
+                                    passage.getInstruction(),
                                     passage.getContent(),
                                     passageQuestions,
                                     passageQuestionGroups

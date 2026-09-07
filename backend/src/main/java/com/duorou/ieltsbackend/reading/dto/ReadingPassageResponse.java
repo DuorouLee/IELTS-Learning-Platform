@@ -8,37 +8,74 @@ import java.util.List;
  * 专门用于 API 返回 Passage 数据。
  *
  * 目的：
- * 不再把整个 ReadingTest 对象重复嵌套到每一个 Passage 里面。
+ * 不直接把 Entity 返回给前端，
+ * 而是只返回前端真正需要的数据。
  */
 public class ReadingPassageResponse {
 
+    /**
+     * Passage 主键 ID。
+     */
     private Long id;
 
+    /**
+     * Passage 编号。
+     *
+     * 例如：
+     * 1、2、3
+     */
     private Integer passageNumber;
 
+    /**
+     * Passage 标题。
+     *
+     * 例如：
+     * A Brief History of Tea
+     */
     private String title;
 
+    /**
+     * Passage 的公共说明。
+     *
+     * 例如：
+     *
+     * You should spend about 20 minutes on Questions 1-13,
+     * which are based on Reading Passage 1 on the following pages.
+     *
+     * 这个字段以后会显示在双栏区域上方。
+     */
+    private String instruction;
+
+    /**
+     * Passage 正文。
+     */
     private String content;
 
+    /**
+     * 当前 Passage 下的普通题目列表。
+     */
     private List<ReadingQuestionResponse> questions;
 
     /**
-     * 当前 Passage 下的所有题组。
+     * 当前 Passage 下的 QuestionGroup。
      *
-     * 新版 Reading 结构：
+     * 例如：
      *
-     * Passage
-     *   ↓
-     * QuestionGroup
-     *      ├── options
-     *      └── questions
+     * MATCHING_HEADINGS
+     * MATCHING_FEATURES
      */
     private List<QuestionGroupResponse> questionGroups;
 
+    /**
+     * 完整构造方法。
+     *
+     * /full API 当前主要会使用这一版。
+     */
     public ReadingPassageResponse(
             Long id,
             Integer passageNumber,
             String title,
+            String instruction,
             String content,
             List<ReadingQuestionResponse> questions,
             List<QuestionGroupResponse> questionGroups
@@ -46,20 +83,28 @@ public class ReadingPassageResponse {
         this.id = id;
         this.passageNumber = passageNumber;
         this.title = title;
+        this.instruction = instruction;
         this.content = content;
         this.questions = questions;
         this.questionGroups = questionGroups;
     }
 
+    /**
+     * 简化构造方法。
+     *
+     * 某些只需要 Passage 基础信息的地方可以使用。
+     */
     public ReadingPassageResponse(
             Long id,
             Integer passageNumber,
             String title,
+            String instruction,
             String content
     ) {
         this.id = id;
         this.passageNumber = passageNumber;
         this.title = title;
+        this.instruction = instruction;
         this.content = content;
     }
 
@@ -73,6 +118,13 @@ public class ReadingPassageResponse {
 
     public String getTitle() {
         return title;
+    }
+
+    /**
+     * 返回 Passage 公共说明。
+     */
+    public String getInstruction() {
+        return instruction;
     }
 
     public String getContent() {
