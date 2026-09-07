@@ -2,6 +2,8 @@ package com.duorou.ieltsbackend.reading.entity;
 
 import jakarta.persistence.*;
 
+import java.util.List;
+
 /**
  * QuestionGroup 表示 IELTS Reading 中的一组题目。
  *
@@ -103,6 +105,25 @@ public class QuestionGroup {
     private Boolean allowOptionReuse = false;
 
     /**
+     * 当前题组包含的所有选项。
+     *
+     * 例如 MATCHING_HEADINGS：
+     *
+     * i    The beginning of the project
+     * ii   Problems with the original design
+     * iii  An unexpected discovery
+     *
+     * mappedBy = "questionGroup"
+     *
+     * 表示真正维护外键关系的是 QuestionOption 里的：
+     *
+     * @ManyToOne
+     * private QuestionGroup questionGroup;
+     */
+    @OneToMany(mappedBy = "questionGroup")
+    private List<QuestionOption> options;
+
+    /**
      * 无参构造函数。
      *
      * JPA / Hibernate 创建对象时需要。
@@ -148,5 +169,13 @@ public class QuestionGroup {
 
     public void setAllowOptionReuse(Boolean allowOptionReuse) {
         this.allowOptionReuse = allowOptionReuse;
+    }
+
+    public List<QuestionOption> getOptions() {
+        return options;
+    }
+
+    public void setOptions(List<QuestionOption> options) {
+        this.options = options;
     }
 }
