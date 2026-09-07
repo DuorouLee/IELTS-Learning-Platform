@@ -245,20 +245,39 @@ function splitPassageContent(content: string): string[] {
       请求成功。
     -->
     <div v-else-if="testData">
-      <!-- Reading Test 标题 -->
-      <h1>
-        {{ testData.test.title }}
-      </h1>
+      <!--
+        Reading Test 页头。
 
-      <!-- 数据来源 -->
-      <p>
-        来源：{{ testData.test.source }}
-      </p>
+        左边：
+        Test 标题 + 来源
 
-      <!-- 当前答题进度 -->
-      <p>
-        已答：{{ answeredCount }} / {{ totalQuestionCount }}
-      </p>
+        右边：
+        当前答题进度
+      -->
+      <div class="reading-header">
+        <div>
+          <h1 class="reading-title">
+            {{ testData.test.title }}
+          </h1>
+
+          <p class="reading-source">
+            来源：{{ testData.test.source }}
+          </p>
+        </div>
+
+        <!--
+          当前答题进度。
+
+          answeredCount：
+          已答题数量
+
+          totalQuestionCount：
+          总题数
+        -->
+        <div class="reading-progress">
+          已答：{{ answeredCount }} / {{ totalQuestionCount }}
+        </div>
+      </div>
 
       <!--
         遍历所有 Passage。
@@ -742,5 +761,60 @@ main {
 .question-group:last-child {
   margin-bottom: 0;
   border-bottom: none;
+}
+
+/*
+  ==============================
+  Reading Test 顶部页头
+  ==============================
+
+  display: flex
+  让标题信息和答题进度左右排列。
+*/
+.reading-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 24px;
+
+  margin-bottom: 24px;
+}
+
+/*
+  Reading Test 主标题。
+*/
+.reading-title {
+  margin: 0 0 8px 0;
+}
+
+/*
+  来源信息。
+
+  用稍微弱一点的文字表现，
+  避免和主标题抢视觉重点。
+*/
+.reading-source {
+  margin: 0;
+
+  font-size: 14px;
+  color: #666;
+}
+
+/*
+  答题进度。
+
+  单独做成一个小区域，
+  用户进入页面后可以很快看到当前进度。
+*/
+.reading-progress {
+  padding: 8px 14px;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+
+  white-space: nowrap;
+
+  font-weight: 600;
 }
 </style>
