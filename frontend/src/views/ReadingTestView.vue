@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { getFullReadingTest, type FullReadingTestResponse } from '@/api/reading'
 
 /**
@@ -75,6 +75,39 @@ const errorMessage = ref('')
 const answers = ref<Record<number, string>>({})
 
 /**
+ * localStorageKey
+ *
+ * 用当前 Reading Test 的 id 区分不同套题。
+ *
+ * 例如：
+ * reading-answers-3
+ */
+const localStorageKey = 'reading-answers-3'
+
+/**
+ * 监听 answers 的变化。
+ *
+ * 每次用户选择答案后，
+ * 都把最新 answers 保存到浏览器 localStorage。
+ *
+ * localStorage 只能保存字符串，
+ * 所以要用 JSON.stringify 转换。
+ */
+watch(
+  answers,
+  (newAnswers) => {
+    localStorage.setItem(localStorageKey, JSON.stringify(newAnswers))
+  },
+  {
+    /**
+     * answers 是对象，
+     * deep: true 表示对象内部字段变化时也能监听到。
+     */
+    deep: true,
+  },
+)
+
+/**
  * answeredCount
  *
  * computed 是 Vue 的“计算属性”。
@@ -111,6 +144,67 @@ const answeredCount = computed(() => {
 })
 
 /**
+ * totalQuestionCount
+ *
+ * 自动计算当前 Reading Test 一共有多少道题。
+ *
+ * 数据结构是：
+ *
+ * testData
+ * └── passages
+ *     └── questionGroups
+ *         └── questions
+ *
+ * 所以这里需要：
+ *
+ * 1. 遍历所有 Passage
+ * 2. 遍历每个 Passage 的 QuestionGroup
+ * 3. 把每个 group.questions.length 加起来
+ */
+const totalQuestionCount = computed(() => {
+  /**
+   * 如果后端数据还没加载完成，
+   * testData.value 还是 null，
+   * 那么总题数就是 0。
+   */
+  if (!testData.value) {
+    return 0
+  }
+
+  /**
+   * total 用来累计所有题目的数量。
+   */
+  let total = 0
+
+  /**
+   * 遍历所有 Passage。
+   */
+  for (const passage of testData.value.passages) {
+    /**
+     * 遍历当前 Passage 下的所有 QuestionGroup。
+     */
+    for (const group of passage.questionGroups) {
+      /**
+       * 当前 group.questions.length
+       * 就是这一组有多少道题。
+       *
+       * 例如：
+       *
+       * MATCHING_HEADINGS = 8
+       * MATCHING_FEATURES = 5
+       *
+       * 最终：
+       *
+       * total = 8 + 5 = 13
+       */
+      total += group.questions.length
+    }
+  }
+
+  return total
+})
+
+/**
  * onMounted
  *
  * 当 ReadingTestView 页面加载完成以后，
@@ -119,41 +213,30 @@ const answeredCount = computed(() => {
 onMounted(async () => {
   try {
     /**
-     * 调用后端完整 Reading Test API。
-     *
-     * 当前先固定读取：
-     *
-     * ReadingTest id = 3
-     *
-     * 因为我们刚刚重新导入成功的数据 id 是 3。
-     *
-     * 后续项目继续开发时，
-     * 会改成从 Vue Router 的 URL 参数读取 testId。
-     *
-     * 例如：
-     *
-     * /reading/tests/3
-     *
-     * 现在先不提前做。
+     * 页面加载时，
+     * 先尝试读取之前保存在 localStorage 的答案。
+     */
+    const savedAnswers = localStorage.getItem(localStorageKey)
+
+    if (savedAnswers) {
+      /**
+       * localStorage 保存的是字符串，
+       * JSON.parse 把它重新变回对象。
+       */
+      answers.value = JSON.parse(savedAnswers)
+    }
+
+    /**
+     * 再读取 Reading Test。
      */
     testData.value = await getFullReadingTest(3)
   } catch (error) {
-    /**
-     * 请求失败。
-     *
-     * 如果是标准 JavaScript Error，
-     * 就读取里面的 message。
-     */
     if (error instanceof Error) {
       errorMessage.value = error.message
     } else {
       errorMessage.value = '发生未知错误'
     }
   } finally {
-    /**
-     * 不管请求成功还是失败，
-     * 请求结束以后都停止 loading。
-     */
     loading.value = false
   }
 })
@@ -190,13 +273,9 @@ onMounted(async () => {
 
       <!--
         当前答题进度。
-
         answeredCount 会随着 answers 的变化自动更新。
-
-        当前总题数先固定为 13。
-        下一步我们再改成动态计算。
       -->
-      <p>已答：{{ answeredCount }} / 13</p>
+      <p>已答：{{ answeredCount }} / {{ totalQuestionCount }}</p>
 
       <!--
         遍历当前 Reading Test 的所有 Passage。
