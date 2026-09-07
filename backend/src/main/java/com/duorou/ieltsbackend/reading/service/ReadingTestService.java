@@ -14,6 +14,10 @@ import com.duorou.ieltsbackend.reading.dto.ReadingTestDetailResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
 import com.duorou.ieltsbackend.reading.entity.QuestionGroup;
 import com.duorou.ieltsbackend.reading.repository.QuestionGroupRepository;
+import com.duorou.ieltsbackend.reading.dto.QuestionGroupResponse;
+import com.duorou.ieltsbackend.reading.dto.QuestionOptionResponse;
+import com.duorou.ieltsbackend.reading.entity.QuestionGroup;
+import com.duorou.ieltsbackend.reading.entity.QuestionOption;
 
 import java.util.List;
 
@@ -157,8 +161,6 @@ public class ReadingTestService {
                         )
                         .toList();
 
-        System.out.println("Question groups count = " + questionGroups.size());
-
         List<ReadingPassageResponse> passageResponses =
                 passages.stream()
                         .map(passage -> {
@@ -186,6 +188,86 @@ public class ReadingTestService {
                                             .toList();
 
                             /**
+                             * 找出属于当前 Passage 的所有 QuestionGroup，
+                             * 并转换成 API 返回用的 DTO。
+                             */
+                            List<QuestionGroupResponse> passageQuestionGroups =
+                                    questionGroups.stream()
+
+                                            /**
+                                             * 只保留当前 Passage 的题组。
+                                             */
+                                            .filter(group ->
+                                                    group.getReadingPassage()
+                                                            .getId()
+                                                            .equals(passage.getId())
+                                            )
+
+                                            /**
+                                             * Entity -> DTO
+                                             */
+                                            .map(group -> {
+
+                                                /**
+                                                 * 当前 QuestionGroup 下的所有选项。
+                                                 */
+                                                List<QuestionOptionResponse> optionResponses =
+                                                        group.getOptions()
+                                                                .stream()
+                                                                .map(option ->
+                                                                        new QuestionOptionResponse(
+                                                                                option.getId(),
+                                                                                option.getOptionValue(),
+                                                                                option.getOptionText(),
+                                                                                option.getDisplayOrder()
+                                                                        )
+                                                                )
+                                                                .toList();
+
+
+                                                /**
+                                                 * 当前 QuestionGroup 下的所有 Questions。
+                                                 *
+                                                 * ReadingQuestion 目前通过 groupId
+                                                 * 关联 QuestionGroup。
+                                                 */
+                                                List<ReadingQuestionResponse> groupedQuestions =
+                                                        questions.stream()
+
+                                                                .filter(question ->
+                                                                        question.getGroupId() != null
+                                                                                &&
+                                                                                question.getGroupId()
+                                                                                        .equals(group.getId())
+                                                                )
+
+                                                                .map(question ->
+                                                                        new ReadingQuestionResponse(
+                                                                                question.getId(),
+                                                                                question.getQuestionNumber(),
+                                                                                question.getQuestionType(),
+                                                                                question.getQuestionText(),
+                                                                                question.getCorrectAnswer(),
+                                                                                question.getExplanation()
+                                                                        )
+                                                                )
+
+                                                                .toList();
+
+
+                                                return new QuestionGroupResponse(
+                                                        group.getId(),
+                                                        group.getQuestionType(),
+                                                        group.getInstruction(),
+                                                        group.getAllowOptionReuse(),
+                                                        optionResponses,
+                                                        groupedQuestions
+                                                );
+                                            })
+
+                                            .toList();
+
+                            /**
                              * 再创建当前 Passage 的 DTO，
                              * 并把它自己的 Questions 放进去。
                              */
@@ -194,7 +276,8 @@ public class ReadingTestService {
                                     passage.getPassageNumber(),
                                     passage.getTitle(),
                                     passage.getContent(),
-                                    passageQuestions
+                                    passageQuestions,
+                                    passageQuestionGroups
                             );
                         })
                         .toList();

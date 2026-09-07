@@ -22,18 +22,33 @@ public class ReadingPassageResponse {
 
     private List<ReadingQuestionResponse> questions;
 
+    /**
+     * 当前 Passage 下的所有题组。
+     *
+     * 新版 Reading 结构：
+     *
+     * Passage
+     *   ↓
+     * QuestionGroup
+     *      ├── options
+     *      └── questions
+     */
+    private List<QuestionGroupResponse> questionGroups;
+
     public ReadingPassageResponse(
             Long id,
             Integer passageNumber,
             String title,
             String content,
-            List<ReadingQuestionResponse> questions
+            List<ReadingQuestionResponse> questions,
+            List<QuestionGroupResponse> questionGroups
     ) {
         this.id = id;
         this.passageNumber = passageNumber;
         this.title = title;
         this.content = content;
         this.questions = questions;
+        this.questionGroups = questionGroups;
     }
 
     public ReadingPassageResponse(
@@ -66,5 +81,9 @@ public class ReadingPassageResponse {
 
     public List<ReadingQuestionResponse> getQuestions() {
         return questions;
+    }
+
+    public List<QuestionGroupResponse> getQuestionGroups() {
+        return questionGroups;
     }
 }

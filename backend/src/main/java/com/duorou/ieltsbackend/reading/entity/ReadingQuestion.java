@@ -158,11 +158,19 @@ public class ReadingQuestion {
         this.explanation = explanation;
     }
 
+    /**
+     * 获取当前题目所属的题组 ID。
+     */
     public Long getGroupId() {
         return groupId;
     }
 
+    /**
+     * 设置当前题目所属的题组 ID。
+     */
     public void setGroupId(Long groupId) {
         this.groupId = groupId;
     }
+
+
 }
