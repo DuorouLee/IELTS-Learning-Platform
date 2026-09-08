@@ -389,19 +389,33 @@ function splitPassageContent(content: string): string[] {
         -->
         <h2 class="passage-heading">
           <!--
-            当前阶段先直接显示判分结果。
-
-            下一阶段我们会再做正式 Result / Review 页面。
+            提交完成后显示本次 Reading 成绩。
           -->
-          <div v-if="submitResult" class="submit-result">
-            <strong>
-              得分：{{ submitResult.correctCount }} / {{ submitResult.totalQuestions }}
-            </strong>
+          <section v-if="submitResult" class="result-card">
+            <h2>Reading Result</h2>
 
-            <span>
-              正确率：{{ submitResult.percentage.toFixed(2) }}%
-            </span>
-          </div>
+            <div class="result-summary">
+              <div>
+                <strong>{{ submitResult.correctCount }}</strong>
+                <span>Correct</span>
+              </div>
+
+              <div>
+                <strong>{{ submitResult.incorrectCount }}</strong>
+                <span>Incorrect</span>
+              </div>
+
+              <div>
+                <strong>{{ submitResult.totalQuestions }}</strong>
+                <span>Total</span>
+              </div>
+
+              <div>
+                <strong>{{ submitResult.percentage.toFixed(2) }}%</strong>
+                <span>Accuracy</span>
+              </div>
+            </div>
+          </section>
 
           <p v-if="submitErrorMessage" class="submit-error">
             {{ submitErrorMessage }}
@@ -1075,5 +1089,37 @@ main {
 */
 .submit-error {
   margin-bottom: 16px;
+}
+
+.result-card {
+  margin-bottom: 20px;
+  padding: 20px;
+
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+.result-card h2 {
+  margin-top: 0;
+}
+
+.result-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.result-summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.result-summary strong {
+  font-size: 24px;
+}
+
+.result-summary span {
+  font-size: 14px;
 }
 </style>
