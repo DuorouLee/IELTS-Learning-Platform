@@ -18,8 +18,6 @@ public class ReadingQuestionResponse {
 
     private String questionText;
 
-    private String correctAnswer;
-
     private String explanation;
 
     public ReadingQuestionResponse() {
@@ -30,14 +28,12 @@ public class ReadingQuestionResponse {
             Integer questionNumber,
             String questionType,
             String questionText,
-            String correctAnswer,
             String explanation
     ) {
         this.id = id;
         this.questionNumber = questionNumber;
         this.questionType = questionType;
         this.questionText = questionText;
-        this.correctAnswer = correctAnswer;
         this.explanation = explanation;
     }
 
@@ -57,9 +53,6 @@ public class ReadingQuestionResponse {
         return questionText;
     }
 
-    public String getCorrectAnswer() {
-        return correctAnswer;
-    }
 
     public String getExplanation() {
         return explanation;

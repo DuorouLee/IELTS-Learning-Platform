@@ -181,7 +181,6 @@ public class ReadingTestService {
                                                             question.getQuestionNumber(),
                                                             question.getQuestionType(),
                                                             question.getQuestionText(),
-                                                            question.getCorrectAnswer(),
                                                             question.getExplanation()
                                                     )
                                             )
@@ -247,7 +246,6 @@ public class ReadingTestService {
                                                                                 question.getQuestionNumber(),
                                                                                 question.getQuestionType(),
                                                                                 question.getQuestionText(),
-                                                                                question.getCorrectAnswer(),
                                                                                 question.getExplanation()
                                                                         )
                                                                 )

@@ -20,11 +20,6 @@ export interface ReadingQuestion {
   // 题目正文
   questionText: string
 
-  // 正确答案。
-  // 目前前端虽然不会显示答案，
-  // 但后端当前 DTO 仍然返回这个字段，所以先保留。
-  correctAnswer: string
-
   // 题目解析。
   // 当前答题页面暂时不会使用，
   // 后续做判分 / Review 页面时会用到。
@@ -192,6 +187,17 @@ export interface ReadingSubmitResponse {
   correctCount: number
   incorrectCount: number
   percentage: number
+
+  // 后端返回的逐题 Review 结果
+  questions: ReadingQuestionReviewResponse[]
+}
+
+export interface ReadingQuestionReviewResponse {
+  questionId: number
+  questionNumber: number
+  userAnswer: string | null
+  correctAnswer: string
+  correct: boolean
 }
 
 // 调用后端接口，获取完整 Reading Test。
