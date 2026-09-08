@@ -89,6 +89,49 @@ function stripHtml(html) {
 
 /**
  * ------------------------------------------------------------
+ * 提取 Passage 正式标题
+ * ------------------------------------------------------------
+ *
+ * 原始 meta.title 可能包含中文翻译：
+ *
+ * A Brief History of Tea 茶叶简史
+ *
+ * 但是 Passage HTML 中真正显示的 IELTS 标题是：
+ *
+ * <h3>A Brief History of Tea</h3>
+ *
+ * 所以这里优先从 Passage HTML 的 <h3> 中提取标题。
+ *
+ * 这样不会针对某一篇文章写死，
+ * 后续其他 Reading Passage 也可以复用。
+ */
+function extractPassageTitle(blocks) {
+  for (const block of blocks) {
+    if (!block.html) {
+      continue;
+    }
+
+    /**
+     * 找第一个 <h3>...</h3>
+     */
+    const match = block.html.match(/<h3[^>]*>(.*?)<\/h3>/i);
+
+    if (match) {
+      return stripHtml(match[1]);
+    }
+  }
+
+  /**
+   * 如果某些题库没有 h3，
+   * 再退回原始 meta.title。
+   *
+   * 不在这里猜标题。
+   */
+  return passageTitle;
+}
+
+/**
+ * ------------------------------------------------------------
  * 提取 Passage 公共 instruction
  * ------------------------------------------------------------
  *
@@ -454,6 +497,11 @@ function convertQuestionGroup(group) {
 }
 
 /**
+ * 从 Passage HTML 中提取正式英文标题。
+ */
+const passageTitle = extractPassageTitle(source.passage.blocks);
+
+/**
  * 先得到原始 Passage 全部文本。
  */
 const rawPassageContent = source.passage.blocks
@@ -466,17 +514,40 @@ const rawPassageContent = source.passage.blocks
 const passageInstruction = extractPassageInstruction(rawPassageContent);
 
 /**
- * 从正文中删除已经提取出来的 instruction。
- *
- * 这样可以避免前端同时显示：
- *
- * instruction
- * +
- * content 里面重复的 instruction
+ * 先从正文中删除已经独立提取出来的 instruction。
  */
-const passageContent = passageInstruction
+let passageContent = passageInstruction
   ? rawPassageContent.replace(passageInstruction, "").trim()
   : rawPassageContent;
+
+/**
+ * 删除正文开头重复的：
+ *
+ * READING PASSAGE 1
+ *
+ * 因为 passageNumber 已经单独保存，
+ * Vue 会显示：
+ *
+ * Reading Passage 1
+ */
+passageContent = passageContent.replace(/^READING PASSAGE \d+\s*/i, "").trim();
+
+/**
+ * 删除正文开头重复的文章标题。
+ *
+ * 例如：
+ *
+ * A Brief History of Tea
+ *
+ * 因为 title 已经单独保存到：
+ *
+ * passage.title
+ *
+ * Vue 会单独显示文章标题。
+ */
+passageContent = passageContent
+  .replace(new RegExp(`^${passageTitle}\\s*`, "i"), "")
+  .trim();
 
 /**
  * ------------------------------------------------------------
@@ -493,7 +564,7 @@ const result = {
    */
   externalId: source.examId,
 
-  title: source.meta.title,
+  title: passageTitle,
 
   /**
    * 当前 source 字段可以先记录
@@ -505,7 +576,7 @@ const result = {
     {
       passageNumber: 1,
 
-      title: source.meta.title,
+      title: passageTitle,
 
       /**
        * Passage 公共说明。
