@@ -66,14 +66,26 @@ async function loadHistory() {
 }
 
 async function deleteRecord(recordId: number) {
+    /**
+     * 删除前先让用户确认。
+     */
+    const confirmed = window.confirm(
+        '确定要删除这条 Reading Practice History 吗？',
+    )
+
+    /**
+     * 用户点击取消，就不继续删除。
+     */
+    if (!confirmed) {
+        return
+    }
+
     try {
         await deleteReadingPracticeRecord(recordId)
 
         /**
-         * 删除成功后，
-         * 直接把前端数组中的这条记录移除。
-         *
-         * 这样不用重新刷新整个页面。
+         * 后端删除成功以后，
+         * 同步从当前页面移除这条记录。
          */
         records.value = records.value.filter(
             (record) => record.id !== recordId,
