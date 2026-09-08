@@ -4,6 +4,9 @@ import com.duorou.ieltsbackend.reading.dto.ReadingTestDetailResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import com.duorou.ieltsbackend.reading.service.ReadingTestService;
 import org.springframework.web.bind.annotation.*;
+import com.duorou.ieltsbackend.reading.dto.ReadingSubmitRequest;
+import com.duorou.ieltsbackend.reading.dto.ReadingSubmitResponse;
+import com.duorou.ieltsbackend.reading.service.ReadingSubmissionService;
 
 import java.util.List;
 
@@ -38,15 +41,32 @@ public class ReadingTestController {
     private final ReadingTestService readingTestService;
 
     /**
+     * ReadingSubmissionService
+     *
+     * 专门负责：
+     *
+     * 用户提交答案
+     * ↓
+     * 后端判分
+     * ↓
+     * 返回成绩
+     */
+    private final ReadingSubmissionService readingSubmissionService;
+
+    /**
      * 构造器注入。
-     * <p>
-     * Spring 会自动把 ReadingTestService
-     * 注入到 Controller 中。
+     *
+     * Spring 会自动注入：
+     *
+     * ReadingTestService
+     * ReadingSubmissionService
      */
     public ReadingTestController(
-            ReadingTestService readingTestService
+            ReadingTestService readingTestService,
+            ReadingSubmissionService readingSubmissionService
     ) {
         this.readingTestService = readingTestService;
+        this.readingSubmissionService = readingSubmissionService;
     }
 
     /**
@@ -110,5 +130,48 @@ public class ReadingTestController {
             @PathVariable Long id
     ) {
         return readingTestService.findDetailById(id);
+    }
+
+    /**
+     * 提交一整套 Reading Test 的答案并进行判分。
+     *
+     * HTTP：
+     *
+     * POST /api/reading/tests/{id}/submit
+     *
+     * 例如：
+     *
+     * POST /api/reading/tests/7/submit
+     *
+     * 请求 JSON：
+     *
+     * {
+     *   "answers": {
+     *     "27": "viii",
+     *     "28": "iv",
+     *     "35": "D"
+     *   }
+     * }
+     *
+     * 调用链：
+     *
+     * Frontend
+     * ↓
+     * ReadingTestController
+     * ↓
+     * ReadingSubmissionService
+     * ↓
+     * ReadingQuestionRepository
+     * ↓
+     * SQLite 中的 correctAnswer
+     * ↓
+     * ReadingSubmitResponse
+     */
+    @PostMapping("/{id}/submit")
+    public ReadingSubmitResponse submitReadingTest(
+            @PathVariable Long id,
+            @RequestBody ReadingSubmitRequest request
+    ) {
+        return readingSubmissionService.submitTest(id, request);
     }
 }
