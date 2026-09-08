@@ -200,6 +200,16 @@ export interface ReadingQuestionReviewResponse {
   correct: boolean
 }
 
+export interface ReadingPracticeRecord {
+  id: number
+  testId: number
+  testTitle: string
+  correctCount: number
+  totalQuestions: number
+  percentage: number
+  submittedAt: number
+}
+
 // 调用后端接口，获取完整 Reading Test。
 export async function getFullReadingTest(testId: number): Promise<FullReadingTestResponse> {
   // fetch 用来向 Spring Boot 发 HTTP 请求。
@@ -305,5 +315,22 @@ export async function getReadingTests(): Promise<ReadingTest[]> {
    *
    * 转换成 JavaScript / TypeScript 数组。
    */
+  return response.json()
+}
+
+/**
+ * 获取 Reading Practice History。
+ *
+ * 对应后端：
+ *
+ * GET /api/reading/practice-history
+ */
+export async function getReadingPracticeHistory(): Promise<ReadingPracticeRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/api/reading/practice-history`)
+
+  if (!response.ok) {
+    throw new Error(`获取 Reading Practice History 失败：${response.status}`)
+  }
+
   return response.json()
 }
