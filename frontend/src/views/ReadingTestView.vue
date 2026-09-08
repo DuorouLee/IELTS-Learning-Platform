@@ -207,21 +207,26 @@ watch(
 /**
  * splitPassageContent
  *
- * 把 Passage 内容拆成多个阅读段落。
+ * 现在 instruction 和 title 已经由后端独立提供，
+ * 所以前端不再写死：
  *
- * 当前规则：
+ * A Brief History of Tea
  *
- * 1. 在文章标题前切割
- * 2. 在 Paragraph A / B / C ... 前切割
+ *这里只负责按：
  *
- * 注意：
- * 当前标题 A Brief History of Tea 是临时写法。
- * 后面更合理的方式是把 title / instruction
- * 放进后端独立字段。
+ * Paragraph A
+ * Paragraph B
+ * Paragraph C
+ * ...
+ *
+ * 拆分正文。
+ *
+ * 这样以后加载其他 Reading Passage 时，
+ * 不需要修改前端代码。
  */
 function splitPassageContent(content: string): string[] {
   return content
-    .split(/(?=A Brief History of Tea)|(?=Paragraph [A-Z])/)
+    .split(/(?=Paragraph [A-Z])/)
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
 }
@@ -283,19 +288,33 @@ function splitPassageContent(content: string): string[] {
         遍历所有 Passage。
       -->
       <section v-for="passage in testData.passages" :key="passage.id">
+        <!--
+          当前 Reading Passage 的编号。
+        -->
         <h2 class="passage-heading">
           Reading Passage {{ passage.passageNumber }}
         </h2>
 
         <!--
-          Reading 双栏布局。
+          Passage 公共说明。
 
-          左：
-          Passage
+          这个字段现在正式来自后端：
 
-          右：
-          QuestionGroups
+          reading_passage.instruction
+          ↓
+          /full API
+          ↓
+          ReadingPassage TypeScript
+          ↓
+          Vue
+
+          因为 instruction 属于整个 Passage，
+          所以放在 Article / Questions 双栏上方。
         -->
+        <p v-if="passage.instruction" class="passage-instruction">
+          {{ passage.instruction }}
+        </p>
+
         <div class="reading-layout">
 
           <!-- =========================
@@ -305,6 +324,19 @@ function splitPassageContent(content: string): string[] {
             <h3 class="panel-title">
               Article
             </h3>
+
+            <!--
+              Passage 文章标题。
+
+              例如：
+              A Brief History of Tea
+
+              现在直接读取后端 title，
+              不再依赖 content 中的文字。
+            -->
+            <h4 v-if="passage.title" class="article-title">
+              {{ passage.title }}
+            </h4>
 
             <!--
               Passage 正文拆成多个段落。
@@ -846,6 +878,35 @@ main {
   padding-bottom: 10px;
 
   border-bottom: 1px solid #e5e5e5;
+
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/*
+  Passage 公共说明。
+
+  它属于整个 Reading Passage，
+  所以显示在双栏主体上方。
+
+  使用稍弱的文字颜色，
+  和文章正文区分开。
+*/
+.passage-instruction {
+  margin: 0 0 16px 0;
+
+  color: #555;
+  line-height: 1.6;
+}
+
+/*
+  Article 正式标题。
+
+  例如：
+  A Brief History of Tea
+*/
+.article-title {
+  margin: 0 0 20px 0;
 
   font-size: 18px;
   font-weight: 600;
