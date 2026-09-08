@@ -334,3 +334,20 @@ export async function getReadingPracticeHistory(): Promise<ReadingPracticeRecord
 
   return response.json()
 }
+
+/**
+ * 删除一条 Reading Practice History。
+ *
+ * 对应后端：
+ *
+ * DELETE /api/reading/practice-history/{id}
+ */
+export async function deleteReadingPracticeRecord(recordId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/reading/practice-history/${recordId}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    throw new Error(`删除 Reading Practice History 失败：${response.status}`)
+  }
+}

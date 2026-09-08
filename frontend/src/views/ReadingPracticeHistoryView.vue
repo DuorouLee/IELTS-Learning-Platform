@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
+    deleteReadingPracticeRecord,
     getReadingPracticeHistory,
     type ReadingPracticeRecord,
 } from '@/api/reading'
@@ -61,6 +62,28 @@ async function loadHistory() {
         }
     } finally {
         loading.value = false
+    }
+}
+
+async function deleteRecord(recordId: number) {
+    try {
+        await deleteReadingPracticeRecord(recordId)
+
+        /**
+         * 删除成功后，
+         * 直接把前端数组中的这条记录移除。
+         *
+         * 这样不用重新刷新整个页面。
+         */
+        records.value = records.value.filter(
+            (record) => record.id !== recordId,
+        )
+    } catch (error) {
+        if (error instanceof Error) {
+            errorMessage.value = error.message
+        } else {
+            errorMessage.value = '删除 Reading Practice History 失败'
+        }
     }
 }
 
@@ -127,6 +150,10 @@ onMounted(() => {
                     <span>
                         {{ record.percentage.toFixed(2) }}%
                     </span>
+
+                    <button class="delete-button" @click="deleteRecord(record.id)">
+                        Delete
+                    </button>
                 </div>
             </article>
         </div>
@@ -230,5 +257,15 @@ onMounted(() => {
 
 .summary-item span {
     font-size: 14px;
+}
+
+.delete-button {
+    margin-top: 8px;
+    padding: 6px 10px;
+
+    border: 1px solid #ccc;
+    border-radius: 6px;
+
+    cursor: pointer;
 }
 </style>
