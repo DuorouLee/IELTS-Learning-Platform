@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import ReadingPracticeHistoryView from '@/views/ReadingPracticeHistoryView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,6 +41,12 @@ const router = createRouter({
        * 才加载 ReadingTestView.vue。
        */
       component: () => import('../views/ReadingTestView.vue'),
+    },
+
+    {
+      path: '/reading/history',
+      name: 'reading-history',
+      component: ReadingPracticeHistoryView,
     },
   ],
 })
