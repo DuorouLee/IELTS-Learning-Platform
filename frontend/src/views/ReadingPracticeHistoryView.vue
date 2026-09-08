@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-
+import { RouterLink } from 'vue-router'
 import {
     getReadingPracticeHistory,
     type ReadingPracticeRecord,
@@ -55,7 +55,11 @@ onMounted(() => {
         <div v-else class="history-list">
             <article v-for="record in records" :key="record.id" class="history-card">
                 <div>
-                    <h2>{{ record.testTitle }}</h2>
+                    <h2>
+                        <RouterLink :to="`/reading/tests/${record.testId}`" class="test-link">
+                            {{ record.testTitle }}
+                        </RouterLink>
+                    </h2>
 
                     <p>
                         {{ formatSubmittedAt(record.submittedAt) }}
@@ -128,5 +132,13 @@ onMounted(() => {
 
 .error-message {
     margin-top: 16px;
+}
+
+.test-link {
+    text-decoration: none;
+}
+
+.test-link:hover {
+    text-decoration: underline;
 }
 </style>
