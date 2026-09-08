@@ -61,7 +61,7 @@ public class ReadingPracticeRecord {
      * 提交时间。
      */
     @Column(name = "submitted_at", nullable = false)
-    private LocalDateTime submittedAt;
+    private Long submittedAt;
 
     public Long getId() {
         return id;
@@ -99,11 +99,11 @@ public class ReadingPracticeRecord {
         this.percentage = percentage;
     }
 
-    public LocalDateTime getSubmittedAt() {
+    public Long getSubmittedAt() {
         return submittedAt;
     }
 
-    public void setSubmittedAt(LocalDateTime submittedAt) {
+    public void setSubmittedAt(Long submittedAt) {
         this.submittedAt = submittedAt;
     }
 }

@@ -10,7 +10,6 @@ import com.duorou.ieltsbackend.reading.dto.ReadingQuestionReviewResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPracticeRecord;
 import com.duorou.ieltsbackend.reading.repository.ReadingPracticeRecordRepository;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -240,7 +239,7 @@ public class ReadingSubmissionService {
         /**
          * 保存提交时间。
          */
-        practiceRecord.setSubmittedAt(LocalDateTime.now());
+        practiceRecord.setSubmittedAt(System.currentTimeMillis());
 
         /**
          * 写入 reading_practice_record 表。

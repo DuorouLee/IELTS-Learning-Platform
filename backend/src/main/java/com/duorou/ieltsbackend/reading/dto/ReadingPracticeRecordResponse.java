@@ -13,7 +13,7 @@ public class ReadingPracticeRecordResponse {
     private final Integer correctCount;
     private final Integer totalQuestions;
     private final Double percentage;
-    private final LocalDateTime submittedAt;
+    private final Long submittedAt;
 
     public ReadingPracticeRecordResponse(
             Long id,
@@ -22,7 +22,7 @@ public class ReadingPracticeRecordResponse {
             Integer correctCount,
             Integer totalQuestions,
             Double percentage,
-            LocalDateTime submittedAt
+            Long submittedAt
     ) {
         this.id = id;
         this.testId = testId;
@@ -57,7 +57,7 @@ public class ReadingPracticeRecordResponse {
         return percentage;
     }
 
-    public LocalDateTime getSubmittedAt() {
+    public Long getSubmittedAt() {
         return submittedAt;
     }
 }

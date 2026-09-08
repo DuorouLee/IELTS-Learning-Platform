@@ -4,6 +4,7 @@ import com.duorou.ieltsbackend.reading.dto.ReadingPracticeRecordResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPracticeRecord;
 import com.duorou.ieltsbackend.reading.repository.ReadingPracticeRecordRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,9 +26,14 @@ public class ReadingPracticeHistoryService {
     }
 
     /**
-     * 获取全部 Reading 练习记录，
-     * 按 submittedAt 从新到旧排序。
+     * readOnly = true：
+     * 这个事务只负责读取数据。
+     *
+     * 在整个方法执行期间，
+     * Hibernate Session 会保持开启，
+     * 所以 LAZY 的 ReadingTest 可以正常读取。
      */
+    @Transactional(readOnly = true)
     public List<ReadingPracticeRecordResponse> getPracticeHistory() {
 
         return readingPracticeRecordRepository
@@ -37,9 +43,6 @@ public class ReadingPracticeHistoryService {
                 .toList();
     }
 
-    /**
-     * 把数据库 Entity 转成 API Response DTO。
-     */
     private ReadingPracticeRecordResponse toResponse(
             ReadingPracticeRecord record
     ) {
