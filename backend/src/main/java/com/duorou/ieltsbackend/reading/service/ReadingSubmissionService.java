@@ -6,7 +6,9 @@ import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
 import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import org.springframework.stereotype.Service;
+import com.duorou.ieltsbackend.reading.dto.ReadingQuestionReviewResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -122,69 +124,55 @@ public class ReadingSubmissionService {
          */
         Map<Long, String> answers = request.getAnswers();
 
-        /**
-         * correctCount
-         *
-         * 用来记录答对多少题。
-         */
         int correctCount = 0;
 
-        /**
-         * 第四步：
-         * 遍历所有 Question，
-         * 对比用户答案和正确答案。
-         */
+/**
+ * 保存每一道题的 Review 结果。
+ */
+        List<ReadingQuestionReviewResponse> reviewQuestions = new ArrayList<>();
+
         for (ReadingQuestion question : questions) {
 
-            /**
-             * 当前题目的用户答案。
-             *
-             * question.getId()
-             * 就是 Map 的 key。
-             */
             String userAnswer = answers.get(question.getId());
 
-            /**
-             * 如果用户没答这一题，
-             * userAnswer 会是 null。
-             *
-             * null 直接算错，
-             * 所以不增加 correctCount。
-             */
-            if (userAnswer == null) {
-                continue;
-            }
-
-            /**
-             * 获取数据库中的正确答案。
-             */
             String correctAnswer = question.getCorrectAnswer();
 
             /**
-             * trim()
-             * 去掉用户答案前后的多余空格。
-             *
-             * equalsIgnoreCase()
-             * 让：
-             *
-             * D
-             * d
-             *
-             * 暂时都可以判断为相同。
-             *
-             * 对 MATCHING_HEADINGS 的：
-             *
-             * viii
-             *
-             * 也不会造成问题。
+             * 默认认为当前题错误。
              */
-            if (
-                    correctAnswer != null
-                            && correctAnswer.trim()
-                            .equalsIgnoreCase(userAnswer.trim())
-            ) {
+            boolean correct = false;
+
+            /**
+             * 用户有作答，并且正确答案不为 null 时，
+             * 才进行答案比较。
+             */
+            if (userAnswer != null && correctAnswer != null) {
+                correct = correctAnswer
+                        .trim()
+                        .equalsIgnoreCase(userAnswer.trim());
+            }
+
+            /**
+             * 如果当前题答对，
+             * correctCount 加 1。
+             */
+            if (correct) {
                 correctCount++;
             }
+
+            /**
+             * 无论答对、答错还是未作答，
+             * 都生成一条 Review 数据。
+             */
+            reviewQuestions.add(
+                    new ReadingQuestionReviewResponse(
+                            question.getId(),
+                            question.getQuestionNumber(),
+                            userAnswer,
+                            correctAnswer,
+                            correct
+                    )
+            );
         }
 
         /**
@@ -222,7 +210,8 @@ public class ReadingSubmissionService {
                 totalQuestions,
                 correctCount,
                 incorrectCount,
-                percentage
+                percentage,
+                reviewQuestions
         );
     }
 }
