@@ -7,30 +7,33 @@ import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import org.springframework.stereotype.Service;
 import com.duorou.ieltsbackend.reading.dto.ReadingQuestionReviewResponse;
+import com.duorou.ieltsbackend.reading.entity.ReadingPracticeRecord;
+import com.duorou.ieltsbackend.reading.repository.ReadingPracticeRecordRepository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
  * ReadingSubmissionService
- *
+ * <p>
  * 专门负责 Reading Test 的：
- *
+ * <p>
  * 提交答案
  * ↓
  * 判分
  * ↓
  * 返回成绩
- *
+ * <p>
  * 这个 Service 和 ReadingTestService 分开的原因是：
- *
+ * <p>
  * ReadingTestService：
  * 负责读取 Test 数据。
- *
+ * <p>
  * ReadingSubmissionService：
  * 负责“用户提交答案以后”的业务逻辑。
- *
+ * <p>
  * 这样每个 Service 的职责更加清楚。
  */
 @Service
@@ -38,13 +41,13 @@ public class ReadingSubmissionService {
 
     /**
      * 用来读取 Reading Question。
-     *
+     * <p>
      * 我们需要通过：
-     *
+     * <p>
      * testId
      * ↓
      * 查询当前 Test 的所有 Question
-     *
+     * <p>
      * 然后拿 correctAnswer 和用户答案进行比较。
      */
     private final ReadingQuestionRepository readingQuestionRepository;
@@ -55,26 +58,32 @@ public class ReadingSubmissionService {
     private final ReadingTestRepository readingTestRepository;
 
     /**
+     * 用来保存每次 Reading 提交记录。
+     */
+    private final ReadingPracticeRecordRepository readingPracticeRecordRepository;
+
+    /**
      * 构造器注入。
-     *
+     * <p>
      * Spring 会自动把 Repository 注入进来。
      */
     public ReadingSubmissionService(
             ReadingQuestionRepository readingQuestionRepository,
-            ReadingTestRepository readingTestRepository
+            ReadingTestRepository readingTestRepository,
+            ReadingPracticeRecordRepository readingPracticeRecordRepository
     ) {
         this.readingQuestionRepository = readingQuestionRepository;
         this.readingTestRepository = readingTestRepository;
+        this.readingPracticeRecordRepository = readingPracticeRecordRepository;
     }
 
     /**
      * submitTest
-     *
+     * <p>
      * 对一整套 Reading Test 进行判分。
      *
      * @param testId  当前 Reading Test id
      * @param request 前端提交的答案
-     *
      * @return ReadingSubmitResponse
      */
     public ReadingSubmitResponse submitTest(
@@ -126,9 +135,9 @@ public class ReadingSubmissionService {
 
         int correctCount = 0;
 
-/**
- * 保存每一道题的 Review 结果。
- */
+        /**
+         * 保存每一道题的 Review 结果。
+         */
         List<ReadingQuestionReviewResponse> reviewQuestions = new ArrayList<>();
 
         for (ReadingQuestion question : questions) {
@@ -202,6 +211,41 @@ public class ReadingSubmissionService {
                             / totalQuestions
                             * 100;
         }
+
+        /**
+         * 保存本次 Reading Practice History。
+         */
+        ReadingPracticeRecord practiceRecord =
+                new ReadingPracticeRecord();
+
+        /**
+         * 当前提交的是哪一个 Reading Test。
+         */
+        practiceRecord.setReadingTest(
+                readingTestRepository.findById(testId)
+                        .orElseThrow(
+                                () -> new IllegalArgumentException(
+                                        "Reading test not found: " + testId
+                                )
+                        )
+        );
+
+        /**
+         * 保存成绩。
+         */
+        practiceRecord.setCorrectCount(correctCount);
+        practiceRecord.setTotalQuestions(totalQuestions);
+        practiceRecord.setPercentage(percentage);
+
+        /**
+         * 保存提交时间。
+         */
+        practiceRecord.setSubmittedAt(LocalDateTime.now());
+
+        /**
+         * 写入 reading_practice_record 表。
+         */
+        readingPracticeRecordRepository.save(practiceRecord);
 
         /**
          * 返回最终判分结果。
