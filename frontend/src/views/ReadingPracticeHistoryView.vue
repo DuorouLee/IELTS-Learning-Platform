@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
     getReadingPracticeHistory,
@@ -7,6 +7,39 @@ import {
 } from '@/api/reading'
 
 const records = ref<ReadingPracticeRecord[]>([])
+/**
+ * 总练习次数。
+ */
+const practiceCount = computed(() => records.value.length)
+
+/**
+ * 平均正确率。
+ */
+const averageAccuracy = computed(() => {
+    if (records.value.length === 0) {
+        return 0
+    }
+
+    const total = records.value.reduce(
+        (sum, record) => sum + record.percentage,
+        0,
+    )
+
+    return total / records.value.length
+})
+
+/**
+ * 历史最佳正确率。
+ */
+const bestAccuracy = computed(() => {
+    if (records.value.length === 0) {
+        return 0
+    }
+
+    return Math.max(
+        ...records.value.map((record) => record.percentage),
+    )
+})
 const loading = ref(true)
 const errorMessage = ref('')
 
@@ -38,7 +71,27 @@ onMounted(() => {
 
 <template>
     <main class="history-page">
+        <RouterLink to="/" class="back-link">
+            ← Back to Home
+        </RouterLink>
         <h1>Reading Practice History</h1>
+
+        <section v-if="!loading && !errorMessage && records.length > 0" class="history-summary">
+            <div class="summary-item">
+                <strong>{{ practiceCount }}</strong>
+                <span>Practice Count</span>
+            </div>
+
+            <div class="summary-item">
+                <strong>{{ averageAccuracy.toFixed(2) }}%</strong>
+                <span>Average Accuracy</span>
+            </div>
+
+            <div class="summary-item">
+                <strong>{{ bestAccuracy.toFixed(2) }}%</strong>
+                <span>Best Accuracy</span>
+            </div>
+        </section>
 
         <p v-if="loading">
             Loading...
@@ -140,5 +193,42 @@ onMounted(() => {
 
 .test-link:hover {
     text-decoration: underline;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 16px;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.history-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+
+    margin-bottom: 24px;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    padding: 18px;
+
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.summary-item strong {
+    font-size: 24px;
+}
+
+.summary-item span {
+    font-size: 14px;
 }
 </style>
