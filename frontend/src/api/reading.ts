@@ -171,6 +171,29 @@ export interface FullReadingTestResponse {
   passages: ReadingPassage[]
 }
 
+/**
+ * Reading Submit 请求结构。
+ *
+ * answers 的 key：
+ * ReadingQuestion id
+ *
+ * answers 的 value：
+ * 用户答案
+ */
+export interface ReadingSubmitRequest {
+  answers: Record<number, string>
+}
+
+/**
+ * Reading Submit 返回结果。
+ */
+export interface ReadingSubmitResponse {
+  totalQuestions: number
+  correctCount: number
+  incorrectCount: number
+  percentage: number
+}
+
 // 调用后端接口，获取完整 Reading Test。
 export async function getFullReadingTest(testId: number): Promise<FullReadingTestResponse> {
   // fetch 用来向 Spring Boot 发 HTTP 请求。
@@ -183,6 +206,42 @@ export async function getFullReadingTest(testId: number): Promise<FullReadingTes
   }
 
   // 把后端返回的 JSON 转成 JavaScript / TypeScript 对象。
+  return response.json()
+}
+
+/**
+ * 提交一整套 Reading Test 答案。
+ *
+ * 对应后端：
+ *
+ * POST /api/reading/tests/{testId}/submit
+ */
+export async function submitReadingTest(
+  testId: number,
+  request: ReadingSubmitRequest,
+): Promise<ReadingSubmitResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/reading/tests/${testId}/submit`, {
+    method: 'POST',
+
+    /**
+     * 告诉 Spring Boot：
+     * 请求体是 JSON。
+     */
+    headers: {
+      'Content-Type': 'application/json',
+    },
+
+    /**
+     * fetch 的 body 必须是字符串，
+     * 所以把对象转换成 JSON。
+     */
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    throw new Error(`提交 Reading Test 失败：${response.status}`)
+  }
+
   return response.json()
 }
 

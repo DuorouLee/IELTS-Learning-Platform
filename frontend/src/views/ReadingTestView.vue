@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { getFullReadingTest, type FullReadingTestResponse } from '@/api/reading'
+import {
+  getFullReadingTest,
+  submitReadingTest,
+  type FullReadingTestResponse,
+  type ReadingSubmitResponse,
+} from '@/api/reading'
 import { useRoute } from 'vue-router'
 
 /**
@@ -71,6 +76,39 @@ const currentTestId = computed(() => {
  * 用户选择的 optionValue
  */
 const answers = ref<Record<number, string>>({})
+
+/**
+ * submitResult
+ *
+ * 保存后端判分结果。
+ *
+ * 用户还没有点击提交之前：
+ * null
+ *
+ * 提交成功以后，例如：
+ *
+ * {
+ *   totalQuestions: 13,
+ *   correctCount: 10,
+ *   incorrectCount: 3,
+ *   percentage: 76.92
+ * }
+ */
+const submitResult = ref<ReadingSubmitResponse | null>(null)
+
+/**
+ * submitting
+ *
+ * 防止用户连续点击提交按钮。
+ */
+const submitting = ref(false)
+
+/**
+ * submitErrorMessage
+ *
+ * 保存提交答案失败时的错误信息。
+ */
+const submitErrorMessage = ref('')
 
 /**
  * 每一套 Reading Test 使用独立的 localStorage key。
@@ -189,6 +227,55 @@ async function loadReadingTest() {
 }
 
 /**
+ * submitAnswers
+ *
+ * 把当前 answers 提交给 Spring Boot 判分。
+ */
+async function submitAnswers() {
+  /**
+   * 开始提交。
+   */
+  submitting.value = true
+
+  /**
+   * 清掉上一次提交错误。
+   */
+  submitErrorMessage.value = ''
+
+  try {
+    /**
+     * 前端当前 answers：
+     *
+     * {
+     *   79: "viii",
+     *   80: "iv",
+     *   87: "D"
+     * }
+     *
+     * 直接包装成后端需要的：
+     *
+     * {
+     *   answers: {...}
+     * }
+     */
+    submitResult.value = await submitReadingTest(
+      currentTestId.value,
+      {
+        answers: answers.value,
+      },
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      submitErrorMessage.value = error.message
+    } else {
+      submitErrorMessage.value = '提交 Reading Test 时发生未知错误'
+    }
+  } finally {
+    submitting.value = false
+  }
+}
+
+/**
  * 监听 URL 中 testId 的变化。
  *
  * immediate: true
@@ -279,8 +366,17 @@ function splitPassageContent(content: string): string[] {
           totalQuestionCount：
           总题数
         -->
-        <div class="reading-progress">
-          已答：{{ answeredCount }} / {{ totalQuestionCount }}
+        <div class="reading-actions">
+          <div class="reading-progress">
+            已答：{{ answeredCount }} / {{ totalQuestionCount }}
+          </div>
+
+          <!--
+            提交整套 Reading Test。
+          -->
+          <button class="submit-button" :disabled="submitting" @click="submitAnswers">
+            {{ submitting ? '提交中...' : '提交答案' }}
+          </button>
         </div>
       </div>
 
@@ -292,6 +388,25 @@ function splitPassageContent(content: string): string[] {
           当前 Reading Passage 的编号。
         -->
         <h2 class="passage-heading">
+          <!--
+            当前阶段先直接显示判分结果。
+
+            下一阶段我们会再做正式 Result / Review 页面。
+          -->
+          <div v-if="submitResult" class="submit-result">
+            <strong>
+              得分：{{ submitResult.correctCount }} / {{ submitResult.totalQuestions }}
+            </strong>
+
+            <span>
+              正确率：{{ submitResult.percentage.toFixed(2) }}%
+            </span>
+          </div>
+
+          <p v-if="submitErrorMessage" class="submit-error">
+            {{ submitErrorMessage }}
+          </p>
+
           Reading Passage {{ passage.passageNumber }}
         </h2>
 
@@ -910,5 +1025,55 @@ main {
 
   font-size: 18px;
   font-weight: 600;
+}
+
+/*
+  顶部答题操作区。
+*/
+.reading-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/*
+  提交按钮。
+*/
+.submit-button {
+  padding: 8px 16px;
+
+  border: 1px solid #ccc;
+  border-radius: 8px;
+
+  cursor: pointer;
+}
+
+/*
+  提交过程中禁止重复点击。
+*/
+.submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/*
+  临时成绩显示区域。
+*/
+.submit-result {
+  display: flex;
+  gap: 20px;
+
+  margin-bottom: 16px;
+  padding: 12px 16px;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+/*
+  提交失败提示。
+*/
+.submit-error {
+  margin-bottom: 16px;
 }
 </style>
