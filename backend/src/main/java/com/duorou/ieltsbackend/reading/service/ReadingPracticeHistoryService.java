@@ -56,4 +56,28 @@ public class ReadingPracticeHistoryService {
                 record.getSubmittedAt()
         );
     }
+
+    /**
+     * 删除一条 Reading Practice History。
+     *
+     * @param recordId 历史记录主键
+     */
+    public void deletePracticeRecord(Long recordId) {
+
+        /**
+         * 先确认记录存在。
+         *
+         * 如果不存在，就抛出异常。
+         */
+        if (!readingPracticeRecordRepository.existsById(recordId)) {
+            throw new IllegalArgumentException(
+                    "Reading practice record not found: " + recordId
+            );
+        }
+
+        /**
+         * 删除记录。
+         */
+        readingPracticeRecordRepository.deleteById(recordId);
+    }
 }
