@@ -1143,4 +1143,53 @@ class ReadingTestControllerTest {
                                 .value(50.0)
                 );
     }
+
+    /**
+     * 测试：
+     *
+     * POST /api/reading/tests/{id}/submit
+     *
+     * 当 Reading Test 不存在时，
+     * 应该返回 HTTP 404，
+     * 而不是 500 Internal Server Error。
+     */
+    @Test
+    void shouldReturn404WhenSubmittingNonExistingReadingTest() throws Exception {
+
+        /*
+         * 准备一个基本不存在的 testId。
+         */
+        long nonExistingTestId = 999999L;
+
+        /*
+         * 即使答案为空也没关系，
+         * 因为 Service 应该先检查 Reading Test 是否存在。
+         */
+        String requestJson = """
+            {
+              "answers": {}
+            }
+            """;
+
+        mockMvc.perform(
+                        post(
+                                "/api/reading/tests/{id}/submit",
+                                nonExistingTestId
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson)
+                )
+
+                // GlobalExceptionHandler
+                // 应该把 IllegalArgumentException 转成 404。
+                .andExpect(
+                        status().isNotFound()
+                )
+
+                // 同时验证返回给前端的错误信息。
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Reading test not found: 999999")
+                );
+    }
 }
