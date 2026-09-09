@@ -163,6 +163,10 @@ onMounted(() => {
                         {{ record.percentage.toFixed(2) }}%
                     </span>
 
+                    <RouterLink :to="`/reading/history/${record.id}`" class="detail-link">
+                        View Detail
+                    </RouterLink>
+
                     <button class="delete-button" @click="deleteRecord(record.id)">
                         Delete
                     </button>
@@ -279,5 +283,14 @@ onMounted(() => {
     border-radius: 6px;
 
     cursor: pointer;
+}
+
+.detail-link {
+    margin-top: 8px;
+    text-decoration: none;
+}
+
+.detail-link:hover {
+    text-decoration: underline;
 }
 </style>
