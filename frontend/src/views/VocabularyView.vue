@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import {
     createVocabularyWord,
@@ -15,6 +16,31 @@ import {
  * 保存后端返回的 Vocabulary Word 列表。
  */
 const words = ref<VocabularyWord[]>([])
+
+/**
+ * Vocabulary 总单词数。
+ */
+const totalWords = computed(() => {
+    return words.value.length
+})
+
+/**
+ * 还在学习的单词数量。
+ */
+const learningWords = computed(() => {
+    return words.value.filter(
+        word => word.learningStatus === 'LEARNING',
+    ).length
+})
+
+/**
+ * 已经掌握的单词数量。
+ */
+const masteredWords = computed(() => {
+    return words.value.filter(
+        word => word.learningStatus === 'MASTERED',
+    ).length
+})
 
 /**
  * loading
@@ -207,6 +233,29 @@ onMounted(async () => {
     <main>
         <h1>Vocabulary</h1>
 
+        <section class="vocabulary-statistics">
+            <p>
+                Total:
+                <strong>{{ totalWords }}</strong>
+            </p>
+
+            <p>
+                Learning:
+                <strong>{{ learningWords }}</strong>
+            </p>
+
+            <p>
+                Mastered:
+                <strong>{{ masteredWords }}</strong>
+            </p>
+        </section>
+
+        <p>
+            <RouterLink to="/vocabulary/practice">
+                Start Vocabulary Practice
+            </RouterLink>
+        </p>
+
         <section class="create-word-form">
             <h2>Add Word</h2>
 
@@ -283,7 +332,7 @@ onMounted(async () => {
                     {{
                         word.learningStatus === 'MASTERED'
                             ? 'Mark as Learning'
-                    : 'Mark as Mastered'
+                            : 'Mark as Mastered'
                     }}
                 </button>
 
