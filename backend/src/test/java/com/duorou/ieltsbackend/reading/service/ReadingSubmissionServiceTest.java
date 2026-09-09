@@ -18,6 +18,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * ReadingSubmissionService 集成测试。
@@ -442,6 +444,65 @@ class ReadingSubmissionServiceTest {
                 response.getQuestions()
                         .get(0)
                         .isCorrect()
+        );
+    }
+
+    /**
+     * 测试：
+     *
+     * 如果用户提交一个不存在的 Reading Test id，
+     * Service 应该直接抛出异常，
+     * 而不是继续查询题目或保存 Practice History。
+     */
+    @Test
+    void shouldThrowExceptionWhenReadingTestDoesNotExist() {
+
+        /*
+         * ============================================================
+         * 第一步：准备一个不存在的 testId
+         * ============================================================
+         *
+         * 这里使用一个很大的 id，
+         * 避免和测试数据库里的真实数据冲突。
+         */
+        Long nonExistingTestId = 999999L;
+
+
+        /*
+         * 即使 answers 是空的也没关系，
+         * 因为 Service 应该在处理 answers 之前，
+         * 就先检查 Reading Test 是否存在。
+         */
+        ReadingSubmitRequest request =
+                new ReadingSubmitRequest();
+
+        request.setAnswers(new HashMap<>());
+
+
+        /*
+         * ============================================================
+         * 第二步：执行并验证异常
+         * ============================================================
+         */
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> readingSubmissionService.submitTest(
+                                nonExistingTestId,
+                                request
+                        )
+                );
+
+
+        /*
+         * 验证异常信息里包含 Reading test not found。
+         *
+         * 这样以后如果这段业务规则被意外删除，
+         * 测试就会失败。
+         */
+        assertTrue(
+                exception.getMessage()
+                        .contains("Reading test not found")
         );
     }
 }
