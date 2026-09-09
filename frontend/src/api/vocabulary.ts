@@ -29,6 +29,21 @@ export interface VocabularyWord {
 }
 
 /**
+ * CreateVocabularyWordRequest
+ *
+ * 前端创建单词时发送给后端的数据。
+ *
+ * 和 VocabularyWord 不一样：
+ * 创建时还没有 id 和 createdAt，
+ * 所以这里只保留用户需要填写的字段。
+ */
+export interface CreateVocabularyWordRequest {
+  word: string
+  meaning: string
+  exampleSentence: string
+}
+
+/**
  * 查询全部 Vocabulary Word。
  *
  * 调用后端：
@@ -46,6 +61,47 @@ export async function getVocabularyWords(): Promise<VocabularyWord[]> {
    */
   if (!response.ok) {
     throw new Error(`获取 Vocabulary Word 列表失败：${response.status}`)
+  }
+
+  return response.json()
+}
+
+/**
+ * 创建一个新的 Vocabulary Word。
+ *
+ * 调用后端：
+ *
+ * POST /api/vocabulary/words
+ */
+export async function createVocabularyWord(
+  request: CreateVocabularyWordRequest,
+): Promise<VocabularyWord> {
+  const response = await fetch(`${API_BASE_URL}/api/vocabulary/words`, {
+    method: 'POST',
+
+    /**
+     * 告诉 Spring Boot：
+     * 请求体发送的是 JSON。
+     */
+    headers: {
+      'Content-Type': 'application/json',
+    },
+
+    /**
+     * JavaScript 对象不能直接作为 HTTP Body，
+     * 所以要先转换成 JSON 字符串。
+     */
+    body: JSON.stringify(request),
+  })
+
+  /**
+   * 如果是重复单词，
+   * 后端当前会返回 400。
+   */
+  if (!response.ok) {
+    const errorBody = await response.json()
+
+    throw new Error(errorBody.message ?? `创建 Vocabulary Word 失败：${response.status}`)
   }
 
   return response.json()
