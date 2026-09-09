@@ -123,6 +123,7 @@ watch(
     immediate: true,
   },
 )
+
 </script>
 
 <template>
@@ -225,14 +226,25 @@ watch(
               </p>
 
               <div v-if="group.questionType === 'MATCHING_HEADINGS'" class="heading-options">
-                <h4>List of Headings</h4>
+                <p class="heading-options-label">
+                  MATCHING HEADINGS
+                </p>
 
-                <ul>
-                  <li v-for="option in group.options" :key="option.id">
-                    <strong>{{ option.optionValue }}</strong>
-                    {{ option.optionText }}
-                  </li>
-                </ul>
+                <h4>
+                  List of Headings
+                </h4>
+
+                <div class="heading-reference-list">
+                  <div v-for="option in group.options" :key="option.id" class="heading-reference-item">
+                    <span class="heading-reference-value">
+                      {{ option.optionValue }}
+                    </span>
+
+                    <span>
+                      {{ option.optionText }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div v-else-if="group.questionType === 'MATCHING_FEATURES'" class="feature-options">
@@ -279,7 +291,7 @@ watch(
                       {{
                         getQuestionReview(question.id)?.correct
                           ? '✓ Correct'
-                      : '✗ Incorrect'
+                          : '✗ Incorrect'
                       }}
                     </strong>
 
@@ -304,6 +316,19 @@ watch(
 </template>
 
 <style scoped>
+.reading-page,
+.reading-page button,
+.reading-page input,
+.reading-page select,
+.reading-page textarea,
+.reading-page option {
+  font-family:
+    var(--font-main,
+      "Maple Mono NF CN",
+      "Consolas",
+      monospace);
+}
+
 .reading-page {
   width: 100%;
   padding: 32px 36px;
@@ -532,6 +557,169 @@ watch(
 
   .result-summary {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.matching-heading-question {
+  display: grid;
+
+  grid-template-columns:
+    minmax(160px, 0.42fr) minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 18px;
+
+  padding:
+    16px 18px;
+
+  margin-bottom: 12px;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.42);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.72);
+
+  border-radius: 18px;
+
+  backdrop-filter:
+    blur(14px);
+
+  -webkit-backdrop-filter:
+    blur(14px);
+}
+
+
+.matching-question-label {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+
+.matching-question-number {
+  color: #8ca4b8;
+
+  font-size: 0.7rem;
+
+  flex-shrink: 0;
+}
+
+
+.matching-question-text {
+  color: #465f75;
+
+  font-size: 0.82rem;
+
+  font-weight: 600;
+
+  line-height: 1.45;
+}
+
+
+/* ============================================================
+   Matching Headings Select
+
+   用 Maple Mono NF CN，
+   并且把原生 select 做得更像当前的淡蓝 UI。
+   ============================================================ */
+
+.heading-select {
+  width: 100%;
+
+  min-height: 48px;
+
+  box-sizing: border-box;
+
+  padding:
+    11px 40px 11px 14px;
+
+  color: #45637b;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.62);
+
+  border:
+    1px solid rgba(128,
+      172,
+      207,
+      0.34);
+
+  border-radius: 14px;
+
+  outline: none;
+
+  font-family:
+    var(--font-main,
+      "Maple Mono NF CN",
+      "Consolas",
+      monospace);
+
+  font-size: 0.76rem;
+
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+
+.heading-select:hover {
+  background:
+    rgba(255,
+      255,
+      255,
+      0.78);
+
+  border-color:
+    rgba(108,
+      157,
+      196,
+      0.52);
+}
+
+
+.heading-select:focus {
+  border-color:
+    rgba(98,
+      151,
+      194,
+      0.68);
+
+  box-shadow:
+    0 0 0 4px rgba(112,
+      162,
+      204,
+      0.10);
+}
+
+
+.heading-select option {
+  font-family:
+    var(--font-main,
+      "Maple Mono NF CN",
+      "Consolas",
+      monospace);
+
+  color: #3f5c74;
+}
+
+
+@media (max-width: 700px) {
+  .matching-heading-question {
+    grid-template-columns: 1fr;
   }
 }
 </style>
