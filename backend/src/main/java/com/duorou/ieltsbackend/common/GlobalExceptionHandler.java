@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.duorou.ieltsbackend.reading.exception.ReadingTestNotFoundException;
 
 import java.util.Map;
 
@@ -30,18 +31,14 @@ public class GlobalExceptionHandler {
      *
      * HTTP 404 Not Found
      */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(
-            IllegalArgumentException exception
+    /**
+     * Reading Test 不存在时返回 HTTP 404。
+     */
+    @ExceptionHandler(ReadingTestNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleReadingTestNotFoundException(
+            ReadingTestNotFoundException exception
     ) {
 
-        /**
-         * 返回给前端的 JSON：
-         *
-         * {
-         *   "message": "Reading test not found: 999999"
-         * }
-         */
         Map<String, String> body = Map.of(
                 "message",
                 exception.getMessage()

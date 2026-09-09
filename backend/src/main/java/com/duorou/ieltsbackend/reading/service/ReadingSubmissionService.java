@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.duorou.ieltsbackend.reading.dto.ReadingQuestionReviewResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPracticeRecord;
 import com.duorou.ieltsbackend.reading.repository.ReadingPracticeRecordRepository;
+import com.duorou.ieltsbackend.reading.exception.ReadingTestNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,9 +103,7 @@ public class ReadingSubmissionService {
          * 就不应该继续判分。
          */
         if (!readingTestRepository.existsById(testId)) {
-            throw new IllegalArgumentException(
-                    "Reading test not found: " + testId
-            );
+            throw new ReadingTestNotFoundException(testId);
         }
 
         /**
@@ -223,9 +222,7 @@ public class ReadingSubmissionService {
         practiceRecord.setReadingTest(
                 readingTestRepository.findById(testId)
                         .orElseThrow(
-                                () -> new IllegalArgumentException(
-                                        "Reading test not found: " + testId
-                                )
+                                () -> new ReadingTestNotFoundException(testId)
                         )
         );
 

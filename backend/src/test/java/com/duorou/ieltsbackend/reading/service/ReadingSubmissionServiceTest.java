@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import com.duorou.ieltsbackend.reading.exception.ReadingTestNotFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * ReadingSubmissionService 集成测试。
- *
+ * <p>
  * 这个测试会真实走：
- *
+ * <p>
  * ReadingSubmissionService
  * ↓
  * ReadingTestRepository
@@ -35,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Hibernate / JPA
  * ↓
  * SQLite
- *
+ * <p>
  * 目的：
  * 验证用户提交答案以后，
  * ReadingSubmissionService 能不能正确完成判分。
@@ -52,17 +53,17 @@ class ReadingSubmissionServiceTest {
 
     /**
      * 下面三个 Repository 主要用于准备测试数据。
-     *
+     * <p>
      * 注意：
      * 测试的重点仍然是 ReadingSubmissionService，
      * Repository 只是帮助我们建立：
-     *
+     * <p>
      * ReadingTest
      * ↓
      * ReadingPassage
      * ↓
      * ReadingQuestion
-     *
+     * <p>
      * 这一套真实数据库数据。
      */
     @Autowired
@@ -76,16 +77,16 @@ class ReadingSubmissionServiceTest {
 
     /**
      * 测试场景：
-     *
+     * <p>
      * 当前 Test 有两道题：
-     *
+     * <p>
      * Question 1 正确答案：viii
      * Question 2 正确答案：D
-     *
+     * <p>
      * 用户两道题全部答对。
-     *
+     * <p>
      * 预期结果：
-     *
+     * <p>
      * totalQuestions = 2
      * correctCount = 2
      * incorrectCount = 0
@@ -288,20 +289,20 @@ class ReadingSubmissionServiceTest {
 
     /**
      * 测试：
-     *
+     * <p>
      * 判分时应该忽略：
-     *
+     * <p>
      * 1. 用户答案前后的空格
      * 2. 用户答案的大小写
-     *
+     * <p>
      * 例如：
-     *
+     * <p>
      * 正确答案：
      * TRUE
-     *
+     * <p>
      * 用户提交：
      * "  true  "
-     *
+     * <p>
      * 仍然应该判定为正确。
      */
     @Test
@@ -449,7 +450,7 @@ class ReadingSubmissionServiceTest {
 
     /**
      * 测试：
-     *
+     * <p>
      * 如果用户提交一个不存在的 Reading Test id，
      * Service 应该直接抛出异常，
      * 而不是继续查询题目或保存 Practice History。
@@ -484,9 +485,9 @@ class ReadingSubmissionServiceTest {
          * 第二步：执行并验证异常
          * ============================================================
          */
-        IllegalArgumentException exception =
+        ReadingTestNotFoundException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        ReadingTestNotFoundException.class,
                         () -> readingSubmissionService.submitTest(
                                 nonExistingTestId,
                                 request
@@ -508,12 +509,12 @@ class ReadingSubmissionServiceTest {
 
     /**
      * 测试：
-     *
+     * <p>
      * 如果一个 Reading Test 下面没有任何 Question，
      * 提交时不能发生除以 0。
-     *
+     * <p>
      * 预期：
-     *
+     * <p>
      * totalQuestions = 0
      * correctCount = 0
      * incorrectCount = 0
