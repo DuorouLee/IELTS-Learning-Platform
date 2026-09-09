@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import ReadingPracticeHistoryView from '@/views/ReadingPracticeHistoryView.vue'
 import ReadingHistoryDetailView from '@/views/ReadingHistoryDetailView.vue'
+import VocabularyView from '@/views/VocabularyView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -78,6 +79,15 @@ const router = createRouter({
       path: '/reading/history/:id',
       name: 'reading-history-detail',
       component: ReadingHistoryDetailView,
+    },
+
+    {
+      /**
+       * Vocabulary 单词列表页面。
+       */
+      path: '/vocabulary',
+      name: 'vocabulary',
+      component: VocabularyView,
     },
   ],
 })
