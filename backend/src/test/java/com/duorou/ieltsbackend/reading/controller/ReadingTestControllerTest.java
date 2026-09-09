@@ -2,6 +2,10 @@ package com.duorou.ieltsbackend.reading.controller;
 
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
+import com.duorou.ieltsbackend.reading.repository.ReadingPassageRepository;
+import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
+import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
+import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,6 +84,18 @@ class ReadingTestControllerTest {
      */
     @Autowired
     private ReadingTestRepository readingTestRepository;
+
+    /**
+     * 用于在 Controller 测试中准备 Reading Passage 测试数据。
+     */
+    @Autowired
+    private ReadingPassageRepository readingPassageRepository;
+
+    /**
+     * 用于在 Controller 测试中准备 Reading Question 测试数据。
+     */
+    @Autowired
+    private ReadingQuestionRepository readingQuestionRepository;
 
     /**
      * Spring Boot 4 默认使用 Jackson 3。
@@ -317,6 +333,106 @@ class ReadingTestControllerTest {
                 .andExpect(
                         jsonPath("$.source")
                                 .value("Cambridge IELTS")
+                );
+    }
+
+    /**
+     * 测试：
+     *
+     * GET /api/reading/tests/{id}/full
+     *
+     * 目标：
+     * 1. Reading Test 的题目可以正常返回
+     * 2. correctAnswer 不能在提交之前暴露给前端
+     *
+     * 这是一个回归测试：
+     * 防止以后修改 DTO 时，不小心把正确答案重新放进 /full API。
+     */
+    @Test
+    void fullReadingTestShouldNotExposeCorrectAnswer() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建一个 Reading Test
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Answer Protection Test");
+        readingTest.setSource("Controller Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+        // -----------------------------
+        // 2. 创建一篇 Passage
+        // -----------------------------
+        ReadingPassage passage = new ReadingPassage();
+
+        passage.setReadingTest(savedTest);
+        passage.setPassageNumber(1);
+        passage.setTitle("Test Passage");
+        passage.setContent("This is a test reading passage.");
+
+        ReadingPassage savedPassage =
+                readingPassageRepository.save(passage);
+
+        // -----------------------------
+        // 3. 创建一道题目
+        //
+        // 注意：
+        // 数据库里确实保存 correctAnswer。
+        // 我们就是要验证：
+        // 数据库有答案，但 /full API 不返回答案。
+        // -----------------------------
+        ReadingQuestion question = new ReadingQuestion();
+
+        question.setReadingPassage(savedPassage);
+        question.setQuestionNumber(1);
+        question.setQuestionType("TRUE_FALSE_NOT_GIVEN");
+        question.setQuestionText("This is a test question.");
+
+        // 数据库中保存正确答案
+        question.setCorrectAnswer("TRUE");
+
+        readingQuestionRepository.save(question);
+
+        // -----------------------------
+        // Act + Assert
+        //
+        // 请求：
+        // GET /api/reading/tests/{id}/full
+        // -----------------------------
+        mockMvc.perform(
+                        get(
+                                "/api/reading/tests/{id}/full",
+                                savedTest.getId()
+                        )
+                )
+
+                // API 应该正常返回
+                .andExpect(
+                        status().isOk()
+                )
+
+                // Passage 应该正常返回
+                .andExpect(
+                        jsonPath("$.passages[0].title")
+                                .value("Test Passage")
+                )
+
+                // Question 也应该正常返回
+                .andExpect(
+                        jsonPath("$.passages[0].questions[0].questionText")
+                                .value("This is a test question.")
+                )
+
+                // 最重要的断言：
+                //
+                // 虽然数据库里的正确答案是 TRUE，
+                // 但是 /full API 中绝对不能出现 correctAnswer。
+                .andExpect(
+                        jsonPath(
+                                "$.passages[0].questions[0].correctAnswer"
+                        ).doesNotExist()
                 );
     }
 }
