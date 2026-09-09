@@ -1,5 +1,62 @@
 @import './base.css';
 
+:root {
+  /* =========================
+     Font
+     ========================= */
+
+  --font-main: 'Maple Mono NF CN', 'Consolas', monospace;
+
+  /* =========================
+     Background
+     ========================= */
+
+  --color-bg-start: #edf6fc;
+  --color-bg-middle: #f8fbfd;
+  --color-bg-end: #eef5fa;
+
+  /* =========================
+     Text
+     ========================= */
+
+  --color-text-main: #304d66;
+  --color-text-secondary: #607d95;
+  --color-text-muted: #8197aa;
+
+  /* =========================
+     Primary Blue
+     ========================= */
+
+  --color-primary: #7ca8cd;
+  --color-primary-dark: #668fb7;
+
+  /* =========================
+     Glass
+     ========================= */
+
+  --glass-background: rgba(255, 255, 255, 0.42);
+
+  --glass-background-strong: rgba(255, 255, 255, 0.58);
+
+  --glass-border: rgba(255, 255, 255, 0.72);
+
+  /* =========================
+     Shadow
+     ========================= */
+
+  --shadow-soft: 0 18px 50px rgba(80, 123, 161, 0.075);
+
+  --shadow-card: 0 28px 75px rgba(70, 111, 151, 0.1);
+
+  /* =========================
+     Radius
+     ========================= */
+
+  --radius-small: 14px;
+  --radius-medium: 24px;
+  --radius-large: 36px;
+}
+
 /*
   #app 是整个 Vue 应用最外层容器。
 
@@ -37,4 +94,18 @@ a,
   a:hover {
     background-color: hsla(160, 100%, 37%, 0.2);
   }
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+
+  font-family: var(--font-main);
+
+  color: var(--color-text-main);
 }

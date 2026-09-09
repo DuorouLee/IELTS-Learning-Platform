@@ -258,14 +258,11 @@ import AppNavigation from '@/components/AppNavigation.vue'
       rgba(211, 227, 249, 0.78),
       transparent 31%),
     linear-gradient(180deg,
-      #edf6fc 0%,
-      #f7fbfe 48%,
-      #eef5fa 100%);
+      var(--color-bg-start) 0%,
+      var(--color-bg-middle) 48%,
+      var(--color-bg-end) 100%);
 
-  font-family:
-    "Maple Mono NF CN",
-    "Consolas",
-    monospace;
+  font-family: var(--font-main);
 }
 
 
@@ -429,7 +426,7 @@ import AppNavigation from '@/components/AppNavigation.vue'
 .hero-title {
   margin: 0;
 
-  color: #304e69;
+  color: var(--color-text-main);
 
   font-family:
     "Maple Mono NF CN",
@@ -490,7 +487,7 @@ import AppNavigation from '@/components/AppNavigation.vue'
   margin:
     28px 0 0;
 
-  color: #8097aa;
+  color: var(--color-text-muted);
 
   font-size: 0.82rem;
 
@@ -552,8 +549,8 @@ import AppNavigation from '@/components/AppNavigation.vue'
 
   background:
     linear-gradient(135deg,
-      #7ca8cd,
-      #668fb7);
+      var(--color-primary),
+      var(--color-primary-dark));
 
   box-shadow:
     0 13px 30px rgba(82,
