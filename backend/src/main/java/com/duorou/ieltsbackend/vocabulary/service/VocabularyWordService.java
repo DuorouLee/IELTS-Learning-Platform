@@ -88,4 +88,23 @@ public class VocabularyWordService {
 
         return vocabularyWordRepository.save(vocabularyWord);
     }
+
+    /**
+     * 根据 id 查询一个 Vocabulary Word。
+     *
+     * findById(id) 是 JpaRepository 已经提供的方法。
+     *
+     * 如果找到，就返回对应的 VocabularyWord。
+     *
+     * 如果没有找到，目前先直接抛出 RuntimeException。
+     * 下一小步我们再把它改成明确的 404 业务异常。
+     */
+    public VocabularyWord getWordById(Long id) {
+        return vocabularyWordRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Vocabulary word not found: " + id
+                        )
+                );
+    }
 }

@@ -13,6 +13,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.duorou.ieltsbackend.vocabulary.entity.VocabularyWord;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 /**
  * VocabularyWordController 的 REST API 自动化测试。
  *
@@ -177,4 +179,38 @@ class VocabularyWordControllerTest {
                 )
                 .andExpect(status().isBadRequest());
     }
+
+    /**
+     * 测试根据 id 查询一个 Vocabulary Word。
+     *
+     * 测试步骤：
+     *
+     * 1. 先往数据库保存一个单词
+     * 2. 获取它生成的 id
+     * 3. 请求 GET /api/vocabulary/words/{id}
+     * 4. 验证返回的数据正确
+     */
+    @Test
+    void shouldGetVocabularyWordById() throws Exception {
+
+        VocabularyWord word = new VocabularyWord();
+        word.setWord("allocate");
+        word.setMeaning("分配");
+        word.setExampleSentence("The government allocated more money to education.");
+
+        VocabularyWord savedWord = vocabularyWordRepository.save(word);
+
+        mockMvc.perform(
+                        get("/api/vocabulary/words/{id}", savedWord.getId())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(savedWord.getId()))
+                .andExpect(jsonPath("$.word").value("allocate"))
+                .andExpect(jsonPath("$.meaning").value("分配"))
+                .andExpect(
+                        jsonPath("$.exampleSentence")
+                                .value("The government allocated more money to education.")
+                );
+    }
+
 }

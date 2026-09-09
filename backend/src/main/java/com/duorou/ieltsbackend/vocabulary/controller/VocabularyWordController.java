@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
@@ -110,5 +111,22 @@ public class VocabularyWordController {
             @RequestBody VocabularyWord vocabularyWord
     ) {
         return vocabularyWordService.createWord(vocabularyWord);
+    }
+
+    /**
+     * 根据 id 查询一个 Vocabulary Word。
+     *
+     * 例如：
+     *
+     * GET /api/vocabulary/words/3
+     *
+     * @PathVariable 会把 URL 中的 3
+     * 传给方法参数 id。
+     */
+    @GetMapping("/{id}")
+    public VocabularyWord getWordById(
+            @PathVariable Long id
+    ) {
+        return vocabularyWordService.getWordById(id);
     }
 }
