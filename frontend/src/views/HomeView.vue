@@ -1,229 +1,1452 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-
-import {
-  getReadingTests,
-  type ReadingTest,
-} from '@/api/reading'
-
-/**
- * 保存后端返回的 Reading Test 列表。
- */
-const readingTests = ref<ReadingTest[]>([])
-
-/**
- * 页面是否正在加载 Reading Test。
- */
-const loading = ref(true)
-
-/**
- * 如果请求失败，
- * 保存错误信息。
- */
-const errorMessage = ref('')
-
-/**
- * 页面加载完成以后，
- * 自动请求 Reading Test 列表。
- */
-onMounted(async () => {
-  try {
-    readingTests.value = await getReadingTests()
-  } catch (error) {
-    if (error instanceof Error) {
-      errorMessage.value = error.message
-    } else {
-      errorMessage.value = '获取 Reading Test 列表失败'
-    }
-  } finally {
-    loading.value = false
-  }
-})
-
-/**
- * 开始一次全新的 Reading Practice。
- *
- * ReadingTestView 实际保存答案使用的 key 是：
- *
- * reading-test-{testId}-answers
- *
- * 所以这里必须删除完全相同的 key。
- */
-function startNewReadingPractice(testId: number) {
-  const localStorageKey = `reading-test-${testId}-answers`
-
-  localStorage.removeItem(localStorageKey)
-}
 </script>
 
 <template>
   <main class="home-page">
-    <header class="home-header">
-      <h1>IELTS Learning Platform</h1>
+    <!-- =====================================================
+         顶部导航
 
-      <p>
-        当前先完成 IELTS Reading 学习流程。
-      </p>
-    </header>
+         首页只负责导航，不再承载 Reading 题库列表。
+         ===================================================== -->
+    <nav class="top-navigation">
+      <!-- 左侧品牌 -->
+      <RouterLink to="/" class="brand">
+        <span class="brand-mark">
+          I
+        </span>
 
-    <section class="reading-section">
-      <div class="section-header">
-        <div>
-          <h2>Reading</h2>
+        <span class="brand-text">
+          IELTS Learning
+        </span>
+      </RouterLink>
 
-          <p>
-            选择一套 Reading Test 开始练习。
-          </p>
-        </div>
+      <!-- 右侧模块入口 -->
+      <div class="navigation-links">
+        <RouterLink to="/" class="navigation-link active">
+          Home
+        </RouterLink>
 
-        <RouterLink to="/reading/history" class="history-link">
-          View Reading Practice History
+        <RouterLink to="/reading" class="navigation-link">
+          Reading
+        </RouterLink>
+
+        <RouterLink to="/vocabulary" class="navigation-link">
+          Vocabulary
         </RouterLink>
       </div>
+    </nav>
 
-      <!-- 正在加载 -->
-      <p v-if="loading">
-        正在加载 Reading Tests...
-      </p>
+    <!-- =====================================================
+         首页 Hero
 
-      <!-- 加载失败 -->
-      <p v-else-if="errorMessage" class="error-message">
-        {{ errorMessage }}
-      </p>
+         首页不显示：
+         - Good morning
+         - 今日打卡
+         - 今日目标
 
-      <!-- 没有 Test -->
-      <p v-else-if="readingTests.length === 0">
-        暂无 Reading Test
-      </p>
+         只保留一句真正有辨识度的学习主题。
+         ===================================================== -->
+    <section class="hero">
+      <!-- 背景柔光 -->
+      <div class="hero-glow hero-glow-left"></div>
+      <div class="hero-glow hero-glow-right"></div>
 
-      <!-- Reading Test 列表 -->
-      <div v-else class="test-list">
-        <article v-for="test in readingTests" :key="test.id" class="test-card">
-          <div>
-            <h3>
-              {{ test.title }}
-            </h3>
+      <!-- 左侧文字 -->
+      <div class="hero-content">
+        <p class="hero-label">
+          IELTS LEARNING PLATFORM
+        </p>
 
-            <p class="test-source">
-              来源：{{ test.source }}
+        <!--
+          中文古文单独使用宋体。
+
+          每一句单独一行，
+          避免浏览器自动出现很丑的断句。
+        -->
+        <h1 class="hero-title">
+          <span class="hero-title-line">
+            路漫漫其修远兮，
+          </span>
+
+          <span class="hero-title-line">
+            吾将上下而求索。
+          </span>
+        </h1>
+
+        <p class="hero-description">
+          Reading · Vocabulary · Review
+        </p>
+
+        <!-- 模块入口 -->
+        <div class="hero-actions">
+          <RouterLink to="/reading" class="primary-button">
+            Reading
+            <span>→</span>
+          </RouterLink>
+
+          <RouterLink to="/vocabulary" class="secondary-button">
+            Vocabulary
+            <span>→</span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- =================================================
+           右侧液态玻璃视觉区域
+
+           不放统计数据，
+           只作为视觉主体。
+           ================================================= -->
+      <div class="visual-stage">
+        <!-- 后层玻璃 -->
+        <div class="glass-card glass-card-back">
+          <span class="glass-back-title">
+            Vocabulary
+          </span>
+        </div>
+
+        <!-- 主玻璃 -->
+        <div class="glass-card glass-card-main">
+          <div class="glass-card-top">
+            <span class="glass-number">
+              01
+            </span>
+
+            <span class="glass-small-text">
+              Reading
+            </span>
+          </div>
+
+          <div class="glass-card-center">
+            <p>
+              Read.
+            </p>
+
+            <p>
+              Understand.
+            </p>
+
+            <p>
+              Remember.
             </p>
           </div>
 
-          <!--
-            注意：
+          <div class="glass-card-bottom">
+            IELTS Learning Platform
+          </div>
+        </div>
 
-            这里不能写死：
-            /reading/tests/3
-
-            因为当前页面是 v-for，
-            每一张 Test Card 都有自己的 test.id。
-
-            例如：
-
-            Test 7
-            → /reading/tests/7
-
-            Test 12
-            → /reading/tests/12
-          -->
-          <RouterLink :to="`/reading/tests/${test.id}`" class="practice-link" @click="startNewReadingPractice(test.id)">
-            开始练习
-          </RouterLink>
-        </article>
+        <!-- 装饰性液态圆 -->
+        <div class="floating-orb orb-one"></div>
+        <div class="floating-orb orb-two"></div>
       </div>
     </section>
+
+    <!-- =====================================================
+         模块入口区域
+
+         Home 下面只说明 Reading / Vocabulary 是什么，
+         不直接显示 Reading Test。
+         ===================================================== -->
+    <section class="module-section">
+      <div class="module-heading">
+        <p class="section-label">
+          EXPLORE
+        </p>
+
+        <h2>
+          Choose your path.
+        </h2>
+      </div>
+
+      <div class="module-grid">
+        <!-- Reading -->
+        <RouterLink to="/reading" class="module-card">
+          <div class="module-top">
+            <span class="module-index">
+              01
+            </span>
+
+            <span class="module-arrow">
+              ↗
+            </span>
+          </div>
+
+          <div class="module-content">
+            <p class="module-english">
+              Reading
+            </p>
+
+            <h3>
+              阅读练习
+            </h3>
+
+            <p>
+              完整完成 Reading Test、答题、判分、
+              Review、History 和 Statistics。
+            </p>
+          </div>
+
+          <div class="module-line"></div>
+        </RouterLink>
+
+        <!-- Vocabulary -->
+        <RouterLink to="/vocabulary" class="module-card">
+          <div class="module-top">
+            <span class="module-index">
+              02
+            </span>
+
+            <span class="module-arrow">
+              ↗
+            </span>
+          </div>
+
+          <div class="module-content">
+            <p class="module-english">
+              Vocabulary
+            </p>
+
+            <h3>
+              词汇学习
+            </h3>
+
+            <p>
+              通过学习、复习和长期积累，
+              建立属于自己的 IELTS Vocabulary。
+            </p>
+          </div>
+
+          <div class="module-line"></div>
+        </RouterLink>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="home-footer">
+      <span>
+        IELTS Learning Platform
+      </span>
+
+      <span>
+        Keep moving.
+      </span>
+    </footer>
   </main>
 </template>
 
 <style scoped>
+/* ============================================================
+   Font System
+
+   英文 UI：
+   Maple Mono NF CN
+   → Consolas
+   → monospace
+
+   中文普通正文：
+   Microsoft YaHei / PingFang SC
+
+   中文诗句：
+   SimSun / STSong
+   ============================================================ */
+
+
+/* ============================================================
+   Home Page
+   ============================================================ */
+
 .home-page {
-  width: 100%;
-  padding: 32px 36px;
+  min-height: 100vh;
+
   box-sizing: border-box;
+
+  padding:
+    24px 34px 54px;
+
+  overflow: hidden;
+
+  color: #243448;
+
+  /*
+    淡蓝色主背景。
+
+    不使用纯白，
+    保留非常轻的蓝色空间感。
+  */
+  background:
+    radial-gradient(circle at 14% 15%,
+      rgba(184, 218, 245, 0.62),
+      transparent 28%),
+    radial-gradient(circle at 88% 8%,
+      rgba(211, 227, 249, 0.78),
+      transparent 31%),
+    linear-gradient(180deg,
+      #edf6fc 0%,
+      #f7fbfe 48%,
+      #eef5fa 100%);
+
+  font-family:
+    "Maple Mono NF CN",
+    "Consolas",
+    monospace;
 }
 
-.home-header {
-  margin-bottom: 32px;
+
+/* ============================================================
+   英文 UI 字体
+   ============================================================ */
+
+.brand,
+.navigation-link,
+.hero-label,
+.hero-description,
+.primary-button,
+.secondary-button,
+.section-label,
+.module-english,
+.module-index,
+.glass-card,
+.home-footer {
+  font-family:
+    "Maple Mono NF CN",
+    "Consolas",
+    monospace;
 }
 
-.home-header h1 {
-  margin: 0 0 10px;
-}
 
-.home-header p {
-  margin: 0;
-}
+/* ============================================================
+   Top Navigation
+   ============================================================ */
 
-.reading-section {
-  width: 100%;
-}
+.top-navigation {
+  width: min(1240px, 100%);
 
-.section-header {
+  min-height: 68px;
+
+  margin:
+    0 auto;
+
+  box-sizing: border-box;
+
   display: flex;
+
+  align-items: center;
+
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
 
-  margin-bottom: 24px;
+  gap: 30px;
+
+  padding:
+    10px 12px 10px 16px;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.32);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.68);
+
+  border-radius: 24px;
+
+  backdrop-filter:
+    blur(22px) saturate(145%);
+
+  -webkit-backdrop-filter:
+    blur(22px) saturate(145%);
+
+  box-shadow:
+    0 18px 50px rgba(80,
+      123,
+      161,
+      0.075);
 }
 
-.section-header h2 {
-  margin: 0 0 8px;
-}
 
-.section-header p {
-  margin: 0;
-}
+/* ============================================================
+   Brand
+   ============================================================ */
 
-.history-link,
-.practice-link {
-  display: inline-block;
+.brand {
+  display: flex;
 
-  padding: 9px 14px;
+  align-items: center;
 
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  gap: 11px;
+
+  padding: 0;
+
+  color: #26394d;
 
   text-decoration: none;
+
+  background: transparent;
 }
 
-.test-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+
+.brand:hover {
+  background: transparent;
 }
 
-.test-card {
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+
+  place-items: center;
+
+  color: #ffffff;
+
+  background:
+    linear-gradient(145deg,
+      #8ab2d5,
+      #6d97bd);
+
+  border-radius: 13px;
+
+  font-family:
+    "Maple Mono NF CN",
+    "Consolas",
+    monospace;
+
+  font-size: 1rem;
+
+  font-weight: 700;
+
+  box-shadow:
+    0 8px 20px rgba(79,
+      125,
+      167,
+      0.20);
+}
+
+
+.brand-text {
+  font-size: 0.9rem;
+
+  font-weight: 600;
+
+  letter-spacing: -0.03em;
+}
+
+
+/* ============================================================
+   Navigation
+   ============================================================ */
+
+.navigation-links {
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
-  gap: 24px;
 
-  padding: 20px;
-
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  gap: 5px;
 }
 
-.test-card h3 {
-  margin: 0 0 8px;
+
+.navigation-link {
+  padding:
+    10px 16px;
+
+  color: #667b90;
+
+  text-decoration: none;
+
+  border-radius: 999px;
+
+  font-size: 0.8rem;
+
+  font-weight: 600;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
-.test-source {
+
+.navigation-link:hover {
+  color: #314e69;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.52);
+
+  transform:
+    translateY(-1px);
+}
+
+
+.navigation-link.active {
+  color: #344f69;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.60);
+}
+
+
+/* ============================================================
+   Hero
+   ============================================================ */
+
+.hero {
+  position: relative;
+
+  width: min(1240px, 100%);
+
+  min-height: 620px;
+
+  margin:
+    22px auto 0;
+
+  box-sizing: border-box;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.05fr) minmax(380px, 0.8fr);
+
+  align-items: center;
+
+  gap: 70px;
+
+  padding:
+    74px 72px;
+
+  overflow: hidden;
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.72);
+
+  border-radius: 42px;
+
+  background:
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.50),
+      rgba(222, 239, 251, 0.38));
+
+  backdrop-filter:
+    blur(25px) saturate(130%);
+
+  -webkit-backdrop-filter:
+    blur(25px) saturate(130%);
+
+  box-shadow:
+    0 32px 90px rgba(70,
+      111,
+      151,
+      0.11),
+    inset 0 1px 0 rgba(255,
+      255,
+      255,
+      0.90);
+}
+
+
+/* ============================================================
+   Hero Glow
+   ============================================================ */
+
+.hero-glow {
+  position: absolute;
+
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+
+.hero-glow-left {
+  width: 480px;
+  height: 480px;
+
+  left: -220px;
+  bottom: -250px;
+
+  background:
+    radial-gradient(circle,
+      rgba(173, 211, 240, 0.36),
+      rgba(173, 211, 240, 0));
+}
+
+
+.hero-glow-right {
+  width: 430px;
+  height: 430px;
+
+  right: -130px;
+  top: -160px;
+
+  background:
+    radial-gradient(circle,
+      rgba(203, 218, 247, 0.52),
+      rgba(203, 218, 247, 0));
+}
+
+
+/* ============================================================
+   Hero Content
+   ============================================================ */
+
+.hero-content {
+  position: relative;
+
+  z-index: 2;
+}
+
+
+.hero-label {
+  margin:
+    0 0 24px;
+
+  color: #7896b0;
+
+  font-size: 0.74rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.13em;
+}
+
+
+/* ============================================================
+   首页中文主题句
+
+   中文和英文全部统一使用 Maple Mono NF CN。
+
+   这样整个项目会有更加明显的一致性和个人风格。
+   ============================================================ */
+.hero-title {
   margin: 0;
+
+  color: #304e69;
+
+  font-family:
+    "Maple Mono NF CN",
+    "Consolas",
+    monospace;
+
+  font-size:
+    clamp(2.75rem,
+      4vw,
+      4.45rem);
+
+  font-weight: 600;
+
+  /*
+    Maple Mono 本身比较规整，
+    中文不需要使用很大的负字间距。
+  */
+  letter-spacing: 0.015em;
+
+  line-height: 1.45;
 }
 
-.error-message {
-  margin-top: 16px;
+
+/*
+  每一句完整占一行，
+  避免浏览器乱断句。
+*/
+.hero-title-line {
+  display: block;
+
+  white-space: nowrap;
 }
 
-@media (max-width: 700px) {
 
-  .section-header,
-  .test-card {
-    flex-direction: column;
-    align-items: flex-start;
+.hero-title-line+.hero-title-line {
+  margin-top: 4px;
+}
+
+
+/*
+  每一句独占一行。
+
+  浏览器不能再在句子中间随便换行。
+*/
+.hero-title-line {
+  display: block;
+
+  white-space: nowrap;
+}
+
+
+.hero-title-line+.hero-title-line {
+  margin-top: 4px;
+}
+
+
+.hero-description {
+  margin:
+    28px 0 0;
+
+  color: #8097aa;
+
+  font-size: 0.82rem;
+
+  letter-spacing: 0.04em;
+}
+
+
+/* ============================================================
+   Hero Buttons
+   ============================================================ */
+
+.hero-actions {
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 12px;
+
+  margin-top: 38px;
+}
+
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 12px;
+
+  min-height: 48px;
+
+  box-sizing: border-box;
+
+  padding:
+    0 21px;
+
+  border-radius: 999px;
+
+  text-decoration: none;
+
+  font-size: 0.8rem;
+
+  font-weight: 600;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+
+.primary-button {
+  color: #ffffff;
+
+  background:
+    linear-gradient(135deg,
+      #7ca8cd,
+      #668fb7);
+
+  box-shadow:
+    0 13px 30px rgba(82,
+      133,
+      178,
+      0.24);
+}
+
+
+.primary-button:hover {
+  color: #ffffff;
+
+  transform:
+    translateY(-2px);
+
+  box-shadow:
+    0 17px 35px rgba(82,
+      133,
+      178,
+      0.28);
+}
+
+
+.secondary-button {
+  color: #55738e;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.48);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.76);
+
+  backdrop-filter:
+    blur(16px);
+
+  -webkit-backdrop-filter:
+    blur(16px);
+}
+
+
+.secondary-button:hover {
+  color: #435f79;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.68);
+
+  transform:
+    translateY(-2px);
+}
+
+
+/* ============================================================
+   Visual Stage
+   ============================================================ */
+
+.visual-stage {
+  position: relative;
+
+  z-index: 2;
+
+  width: 100%;
+  height: 430px;
+}
+
+
+/* ============================================================
+   Liquid Glass
+   ============================================================ */
+
+.glass-card {
+  position: absolute;
+
+  box-sizing: border-box;
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.76);
+
+  backdrop-filter:
+    blur(30px) saturate(150%);
+
+  -webkit-backdrop-filter:
+    blur(30px) saturate(150%);
+
+  box-shadow:
+    0 30px 70px rgba(69,
+      108,
+      148,
+      0.14),
+    inset 0 1px 0 rgba(255,
+      255,
+      255,
+      0.94);
+}
+
+
+.glass-card-back {
+  width: 76%;
+  height: 68%;
+
+  right: -5px;
+  top: 30px;
+
+  padding: 30px;
+
+  color:
+    rgba(74,
+      108,
+      141,
+      0.48);
+
+  background:
+    linear-gradient(145deg,
+      rgba(191, 220, 242, 0.30),
+      rgba(255, 255, 255, 0.28));
+
+  border-radius: 38px;
+
+  transform:
+    rotate(7deg);
+}
+
+
+.glass-back-title {
+  font-size: 0.75rem;
+
+  letter-spacing: 0.06em;
+}
+
+
+.glass-card-main {
+  width: 82%;
+  height: 79%;
+
+  left: 2%;
+  bottom: 12px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: space-between;
+
+  padding:
+    28px 30px;
+
+  color: #466884;
+
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.55),
+      rgba(195, 224, 247, 0.25));
+
+  border-radius: 40px;
+
+  transform:
+    rotate(-3deg);
+}
+
+
+.glass-card-top {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+}
+
+
+.glass-number {
+  font-size: 1.75rem;
+
+  color: #6387a5;
+}
+
+
+.glass-small-text {
+  font-size: 0.7rem;
+
+  letter-spacing: 0.05em;
+}
+
+
+.glass-card-center p {
+  margin: 0;
+
+  color: #41617e;
+
+  font-size:
+    clamp(1.4rem,
+      2.7vw,
+      2.25rem);
+
+  font-weight: 600;
+
+  letter-spacing: -0.06em;
+
+  line-height: 1.3;
+}
+
+
+.glass-card-bottom {
+  color: #849db2;
+
+  font-size: 0.67rem;
+
+  letter-spacing: 0.05em;
+}
+
+
+/* ============================================================
+   Floating Orbs
+   ============================================================ */
+
+.floating-orb {
+  position: absolute;
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.80);
+
+  border-radius: 50%;
+
+  backdrop-filter:
+    blur(15px);
+
+  -webkit-backdrop-filter:
+    blur(15px);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,
+      255,
+      255,
+      0.90),
+    0 20px 40px rgba(81,
+      123,
+      162,
+      0.11);
+}
+
+
+.orb-one {
+  width: 78px;
+  height: 78px;
+
+  right: 5px;
+  bottom: 15px;
+
+  background:
+    rgba(190,
+      220,
+      244,
+      0.44);
+}
+
+
+.orb-two {
+  width: 44px;
+  height: 44px;
+
+  left: -14px;
+  top: 80px;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.48);
+}
+
+
+/* ============================================================
+   Modules
+   ============================================================ */
+
+.module-section {
+  width: min(1240px, 100%);
+
+  margin:
+    110px auto 0;
+}
+
+
+.module-heading {
+  margin-bottom: 30px;
+}
+
+
+.section-label {
+  margin:
+    0 0 9px;
+
+  color: #83a0b9;
+
+  font-size: 0.7rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.12em;
+}
+
+
+.module-heading h2 {
+  margin: 0;
+
+  color: #314b62;
+
+  font-family:
+    "Maple Mono NF CN",
+    "Consolas",
+    monospace;
+
+  font-size:
+    clamp(1.7rem,
+      3vw,
+      2.35rem);
+
+  font-weight: 600;
+
+  letter-spacing: -0.06em;
+}
+
+
+.module-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2,
+      minmax(0, 1fr));
+
+  gap: 18px;
+}
+
+
+.module-card {
+  position: relative;
+
+  min-height: 280px;
+
+  box-sizing: border-box;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: space-between;
+
+  padding: 30px;
+
+  overflow: hidden;
+
+  color: #314b62;
+
+  text-decoration: none;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.42);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.72);
+
+  border-radius: 30px;
+
+  backdrop-filter:
+    blur(20px);
+
+  -webkit-backdrop-filter:
+    blur(20px);
+
+  box-shadow:
+    0 20px 55px rgba(67,
+      109,
+      146,
+      0.075);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+
+.module-card:hover {
+  color: #314b62;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.58);
+
+  transform:
+    translateY(-5px);
+
+  box-shadow:
+    0 28px 65px rgba(67,
+      109,
+      146,
+      0.11);
+}
+
+
+.module-top {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+}
+
+
+.module-index {
+  color: #9ab0c3;
+
+  font-size: 0.76rem;
+}
+
+
+.module-arrow {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+
+  place-items: center;
+
+  color: #567895;
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.50);
+
+  border-radius: 50%;
+}
+
+
+.module-content {
+  max-width: 430px;
+}
+
+
+.module-english {
+  margin:
+    0 0 7px;
+
+  color: #7596b1;
+
+  font-size: 1rem;
+}
+
+
+.module-content h3 {
+  margin:
+    0 0 12px;
+
+  color: #344e65;
+
+  font-size: 1.55rem;
+
+  font-weight: 600;
+}
+
+
+.module-content>p:last-child {
+  margin: 0;
+
+  color: #8093a4;
+
+  font-size: 0.86rem;
+
+  line-height: 1.7;
+}
+
+
+.module-line {
+  width: 100%;
+  height: 1px;
+
+  background:
+    linear-gradient(90deg,
+      rgba(108, 148, 181, 0.34),
+      rgba(108, 148, 181, 0));
+}
+
+
+/* ============================================================
+   Footer
+   ============================================================ */
+
+.home-footer {
+  width: min(1240px, 100%);
+
+  margin:
+    110px auto 0;
+
+  box-sizing: border-box;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding-top: 25px;
+
+  color: #95a9ba;
+
+  border-top:
+    1px solid rgba(128,
+      161,
+      190,
+      0.15);
+
+  font-size: 0.7rem;
+}
+
+
+/* ============================================================
+   Tablet
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+  .hero {
+    grid-template-columns: 1fr;
+
+    min-height: auto;
+
+    padding:
+      60px 42px;
   }
+
+
+  .visual-stage {
+    width: min(500px, 100%);
+
+    height: 390px;
+
+    margin:
+      0 auto;
+  }
+
+
+  .module-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+/* ============================================================
+   Mobile
+   ============================================================ */
+
+@media (max-width: 650px) {
+
+  .home-page {
+    padding:
+      14px 14px 40px;
+  }
+
+
+  .top-navigation {
+    min-height: 60px;
+
+    padding:
+      8px 9px 8px 12px;
+
+    border-radius: 20px;
+  }
+
+
+  .brand-text {
+    display: none;
+  }
+
+
+  .navigation-links {
+    gap: 0;
+  }
+
+
+  .navigation-link {
+    padding:
+      9px 10px;
+
+    font-size: 0.7rem;
+  }
+
+
+  .hero {
+    margin-top: 14px;
+
+    padding:
+      48px 24px;
+
+    border-radius: 30px;
+  }
+
+
+  .hero-title {
+    font-size: 2.1rem;
+
+    letter-spacing: 0.01em;
+  }
+
+
+  /*
+    小屏幕不再强制 nowrap。
+
+    否则太窄的手机可能横向溢出。
+  */
+  .hero-title-line {
+    white-space: normal;
+  }
+
+
+  .hero-actions {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+  }
+
+
+  .visual-stage {
+    height: 320px;
+  }
+
+
+  .glass-card-main {
+    width: 88%;
+    height: 77%;
+
+    padding: 23px;
+  }
+
+
+  .glass-card-back {
+    width: 76%;
+  }
+
+
+  .module-section {
+    margin-top: 75px;
+  }
+
+
+  .module-card {
+    min-height: 250px;
+
+    padding: 25px;
+  }
+
+
+  .home-footer {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    margin-top: 75px;
+  }
+
 }
 </style>

@@ -5,6 +5,7 @@ import ReadingPracticeHistoryView from '@/views/ReadingPracticeHistoryView.vue'
 import ReadingHistoryDetailView from '@/views/ReadingHistoryDetailView.vue'
 import VocabularyView from '@/views/VocabularyView.vue'
 import VocabularyPracticeView from '@/views/VocabularyPracticeView.vue'
+import ReadingHomeView from '@/views/ReadingHomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -100,6 +101,12 @@ const router = createRouter({
       path: '/vocabulary/practice',
       name: 'vocabulary-practice',
       component: VocabularyPracticeView,
+    },
+
+    {
+      path: '/reading',
+      name: 'reading-home',
+      component: ReadingHomeView,
     },
   ],
 })
