@@ -60,4 +60,17 @@ public class VocabularyWordService {
     public List<VocabularyWord> getAllWords() {
         return vocabularyWordRepository.findAll();
     }
+
+    /**
+     * 创建一个新的 Vocabulary Word。
+     *
+     * Controller 接收到前端传来的单词后，
+     * 会调用这个方法。
+     *
+     * save() 是 Spring Data JPA 已经提供的方法，
+     * 会把 VocabularyWord 保存到 vocabulary_word 表。
+     */
+    public VocabularyWord createWord(VocabularyWord vocabularyWord) {
+        return vocabularyWordRepository.save(vocabularyWord);
+    }
 }

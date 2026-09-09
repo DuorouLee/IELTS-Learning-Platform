@@ -5,6 +5,8 @@ import com.duorou.ieltsbackend.vocabulary.service.VocabularyWordService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -82,5 +84,31 @@ public class VocabularyWordController {
     @GetMapping
     public List<VocabularyWord> getAllWords() {
         return vocabularyWordService.getAllWords();
+    }
+
+    /**
+     * 创建一个新的单词。
+     *
+     * 请求：
+     *
+     * POST /api/vocabulary/words
+     *
+     * Body 示例：
+     *
+     * {
+     *   "word": "abandon",
+     *   "meaning": "放弃；抛弃",
+     *   "exampleSentence": "They had to abandon the plan."
+     * }
+     *
+     * @RequestBody
+     * 会把前端发送的 JSON
+     * 自动转换成 VocabularyWord Java 对象。
+     */
+    @PostMapping
+    public VocabularyWord createWord(
+            @RequestBody VocabularyWord vocabularyWord
+    ) {
+        return vocabularyWordService.createWord(vocabularyWord);
     }
 }
