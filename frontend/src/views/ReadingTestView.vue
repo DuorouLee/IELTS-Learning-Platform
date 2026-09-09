@@ -77,54 +77,35 @@ async function loadReadingTest() {
 }
 
 /**
- * 提交 Reading Test。
+ * 提交当前 Reading Test 的答案。
  *
- * 提交成功以后：
+ * 提交成功后：
+ * 1. 后端保存正式练习记录；
+ * 2. 前端保存后端返回的判分结果；
+ * 3. 删除当前 Test 的 localStorage 草稿。
  *
- * 1. 后端完成判分并保存 Practice History
- * 2. 当前页面继续显示 Result / Review
- * 3. 删除 localStorage 中的草稿
- *
- * 为什么提交后要删除草稿？
- *
- * localStorage 的作用是保存“未完成练习”。
- *
- * 一旦已经成功提交，
- * 这次 Practice 就已经结束，
- * 它就不应该再被当成草稿恢复。
- *
- * 这样用户之后重新进入同一套 Reading Test 时，
- * 就会从空白答案开始新的练习。
+ * 这样可以保证：
+ * - 未提交的练习可以恢复；
+ * - 已提交的练习不会被当成草稿恢复；
+ * - 再次进入同一个 Test 时会开始新的练习。
  */
 async function submitAnswers() {
   submitting.value = true
   submitErrorMessage.value = ''
 
   try {
-    submitResult.value = await submitReadingTest(
-      currentTestId.value,
-      {
-        answers: answers.value,
-      },
-    )
+    submitResult.value = await submitReadingTest(currentTestId.value, {
+      answers: answers.value,
+    })
 
-    /**
-     * 提交成功后删除当前 Test 的草稿。
-     *
-     * 注意：
-     * 必须放在 await submitReadingTest() 成功之后。
-     *
-     * 如果后端提交失败，
-     * 我们仍然需要保留 localStorage，
-     * 避免用户刚刚填写的答案丢失。
-     */
+    // 只有后端提交成功以后才删除草稿。
+    // 如果请求失败，草稿仍然保留，避免用户答案丢失。
     localStorage.removeItem(storageKey.value)
   } catch (error) {
     if (error instanceof Error) {
       submitErrorMessage.value = error.message
     } else {
-      submitErrorMessage.value =
-        '提交 Reading Test 时发生未知错误'
+      submitErrorMessage.value = '提交 Reading Test 时发生未知错误'
     }
   } finally {
     submitting.value = false
@@ -140,10 +121,29 @@ function getQuestionReview(questionId: number) {
   )
 }
 
+/**
+ * 自动保存未提交的 Reading 草稿。
+ *
+ * submitResult === null：
+ * 当前仍然是未提交练习，可以继续保存草稿。
+ *
+ * submitResult !== null：
+ * 当前练习已经正式提交，不再写回 localStorage。
+ *
+ * 这个判断非常重要，否则 submitAnswers() 删除草稿之后，
+ * answers 后续发生变化时可能再次把已提交答案写回 localStorage。
+ */
 watch(
   answers,
   (newAnswers) => {
-    localStorage.setItem(storageKey.value, JSON.stringify(newAnswers))
+    if (submitResult.value !== null) {
+      return
+    }
+
+    localStorage.setItem(
+      storageKey.value,
+      JSON.stringify(newAnswers),
+    )
   },
   {
     deep: true,
