@@ -3,9 +3,12 @@ import { onMounted, ref } from 'vue'
 
 import {
     createVocabularyWord,
+    deleteVocabularyWord,
     getVocabularyWords,
     type VocabularyWord,
 } from '@/api/vocabulary'
+
+
 /**
  * words
  *
@@ -106,6 +109,29 @@ async function handleCreateWord() {
 }
 
 /**
+ * 删除指定单词。
+ *
+ * 删除成功以后，
+ * 同时从当前页面的 words 数组中移除它，
+ * 这样不需要刷新整个页面。
+ */
+async function handleDeleteWord(id: number) {
+    try {
+        await deleteVocabularyWord(id)
+
+        words.value = words.value.filter(
+            word => word.id !== id,
+        )
+    } catch (error) {
+        if (error instanceof Error) {
+            errorMessage.value = error.message
+        } else {
+            errorMessage.value = '删除 Vocabulary Word 失败'
+        }
+    }
+}
+
+/**
  * 页面加载完成以后，
  * 自动调用：
  *
@@ -196,6 +222,10 @@ onMounted(async () => {
                     <strong>Example:</strong>
                     {{ word.exampleSentence }}
                 </p>
+
+                <button type="button" @click="handleDeleteWord(word.id)">
+                    Delete
+                </button>
             </article>
         </div>
     </main>

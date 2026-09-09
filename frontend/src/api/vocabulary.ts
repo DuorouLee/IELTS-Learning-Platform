@@ -106,3 +106,27 @@ export async function createVocabularyWord(
 
   return response.json()
 }
+
+/**
+ * 根据 id 删除一个 Vocabulary Word。
+ *
+ * 调用后端：
+ *
+ * DELETE /api/vocabulary/words/{id}
+ */
+export async function deleteVocabularyWord(id: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/vocabulary/words/${id}`, {
+    method: 'DELETE',
+  })
+
+  /**
+   * 后端删除成功会返回：
+   *
+   * 204 No Content
+   *
+   * 所以这里不需要 response.json()。
+   */
+  if (!response.ok) {
+    throw new Error(`删除 Vocabulary Word 失败：${response.status}`)
+  }
+}
