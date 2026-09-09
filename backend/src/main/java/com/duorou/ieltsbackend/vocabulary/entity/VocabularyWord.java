@@ -80,6 +80,37 @@ public class VocabularyWord {
     private String exampleSentence;
 
     /**
+     * 当前单词的学习状态。
+     *
+     * 数据库对应字段：
+     *
+     * learning_status
+     *
+     * 当前第一版只使用两个值：
+     *
+     * LEARNING
+     * MASTERED
+     *
+     * 数据库中默认值是 LEARNING。
+     *
+     * insertable = false 的原因：
+     * 新建单词时先让 SQLite 使用
+     *
+     * DEFAULT 'LEARNING'
+     *
+     * 自动生成默认状态。
+     *
+     * 后续用户主动修改学习状态时，
+     * Hibernate 仍然可以通过 UPDATE 修改这个字段。
+     */
+    @Column(
+            name = "learning_status",
+            insertable = false,
+            nullable = false
+    )
+    private String learningStatus;
+
+    /**
      * 创建时间。
      *
      * insertable = false：
@@ -139,6 +170,24 @@ public class VocabularyWord {
 
     public void setExampleSentence(String exampleSentence) {
         this.exampleSentence = exampleSentence;
+    }
+
+    /**
+     * 获取当前单词的学习状态。
+     */
+    public String getLearningStatus() {
+        return learningStatus;
+    }
+
+    /**
+     * 修改当前单词的学习状态。
+     *
+     * 例如：
+     *
+     * word.setLearningStatus("MASTERED");
+     */
+    public void setLearningStatus(String learningStatus) {
+        this.learningStatus = learningStatus;
     }
 
     public LocalDateTime getCreatedAt() {
