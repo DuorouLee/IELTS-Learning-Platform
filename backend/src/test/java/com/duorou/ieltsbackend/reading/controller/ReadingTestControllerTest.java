@@ -1229,4 +1229,37 @@ class ReadingTestControllerTest {
                                 .value("Reading test not found: 999999")
                 );
     }
+
+    /**
+     * 测试：
+     *
+     * GET /api/reading/tests/{id}/full
+     *
+     * 当 Reading Test 不存在时，
+     * 应该统一返回 HTTP 404。
+     */
+    @Test
+    void shouldReturn404WhenFullReadingTestDoesNotExist() throws Exception {
+
+        long nonExistingTestId = 999999L;
+
+        mockMvc.perform(
+                        get(
+                                "/api/reading/tests/{id}/full",
+                                nonExistingTestId
+                        )
+                )
+
+                // ReadingTestNotFoundException
+                // 应该由 GlobalExceptionHandler 转换成 404。
+                .andExpect(
+                        status().isNotFound()
+                )
+
+                // 返回统一错误信息。
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Reading test not found: 999999")
+                );
+    }
 }
