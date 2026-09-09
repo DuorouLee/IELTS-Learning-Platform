@@ -210,6 +210,35 @@ export interface ReadingPracticeRecord {
   submittedAt: number
 }
 
+/**
+ * 某一道题的历史作答结果。
+ */
+export interface ReadingPracticeAnswerDetail {
+  questionId: number
+  questionNumber: number
+  userAnswer: string | null
+  correctAnswer: string
+  correct: boolean
+}
+
+/**
+ * 某一次 Reading Practice 的完整详情。
+ */
+export interface ReadingPracticeHistoryDetail {
+  id: number
+  testId: number
+  testTitle: string
+  correctCount: number
+  totalQuestions: number
+  percentage: number
+  submittedAt: number
+
+  /**
+   * 这一次练习中每一道题的历史答案。
+   */
+  answers: ReadingPracticeAnswerDetail[]
+}
+
 // 调用后端接口，获取完整 Reading Test。
 export async function getFullReadingTest(testId: number): Promise<FullReadingTestResponse> {
   // fetch 用来向 Spring Boot 发 HTTP 请求。
@@ -350,4 +379,23 @@ export async function deleteReadingPracticeRecord(recordId: number): Promise<voi
   if (!response.ok) {
     throw new Error(`删除 Reading Practice History 失败：${response.status}`)
   }
+}
+
+/**
+ * 获取某一次 Reading Practice 的完整历史详情。
+ *
+ * 对应后端：
+ *
+ * GET /api/reading/practice-history/{id}
+ */
+export async function getReadingPracticeHistoryDetail(
+  id: number,
+): Promise<ReadingPracticeHistoryDetail> {
+  const response = await fetch(`http://localhost:8080/api/reading/practice-history/${id}`)
+
+  if (!response.ok) {
+    throw new Error('Failed to load reading practice history detail')
+  }
+
+  return response.json()
 }
