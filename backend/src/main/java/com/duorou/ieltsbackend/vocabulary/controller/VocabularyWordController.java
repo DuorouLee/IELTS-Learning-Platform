@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import java.util.List;
 
@@ -154,5 +155,50 @@ public class VocabularyWordController {
         vocabularyWordService.deleteWordById(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 修改学习状态时，
+     * 前端发送的 JSON：
+     *
+     * {
+     *   "learningStatus": "MASTERED"
+     * }
+     */
+    public static class UpdateLearningStatusRequest {
+
+        private String learningStatus;
+
+        public String getLearningStatus() {
+            return learningStatus;
+        }
+
+        public void setLearningStatus(String learningStatus) {
+            this.learningStatus = learningStatus;
+        }
+    }
+
+    /**
+     * 修改 Vocabulary Word 的学习状态。
+     *
+     * 请求：
+     *
+     * PUT /api/vocabulary/words/{id}/status
+     *
+     * Body:
+     *
+     * {
+     *   "learningStatus": "MASTERED"
+     * }
+     */
+    @PutMapping("/{id}/status")
+    public VocabularyWord updateLearningStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateLearningStatusRequest request
+    ) {
+        return vocabularyWordService.updateLearningStatus(
+                id,
+                request.getLearningStatus()
+        );
     }
 }

@@ -127,4 +127,30 @@ public class VocabularyWordService {
 
         vocabularyWordRepository.deleteById(id);
     }
+
+    /**
+     * 修改一个 Vocabulary Word 的学习状态。
+     *
+     * 当前允许的状态：
+     *
+     * LEARNING
+     * MASTERED
+     *
+     * 如果 id 不存在，
+     * 继续复用 VocabularyWordNotFoundException。
+     */
+    public VocabularyWord updateLearningStatus(
+            Long id,
+            String learningStatus
+    ) {
+
+        VocabularyWord word = vocabularyWordRepository.findById(id)
+                .orElseThrow(() ->
+                        new VocabularyWordNotFoundException(id)
+                );
+
+        word.setLearningStatus(learningStatus);
+
+        return vocabularyWordRepository.save(word);
+    }
 }

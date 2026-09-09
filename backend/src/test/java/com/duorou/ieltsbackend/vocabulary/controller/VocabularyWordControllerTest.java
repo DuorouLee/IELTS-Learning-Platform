@@ -9,6 +9,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -271,5 +272,46 @@ class VocabularyWordControllerTest {
         );
 
         assertFalse(exists);
+    }
+
+    /**
+     * 测试修改 Vocabulary Word 的学习状态。
+     *
+     * 测试步骤：
+     *
+     * 1. 先保存一个单词
+     * 2. 调用 PUT /api/vocabulary/words/{id}/status
+     * 3. 把状态修改成 MASTERED
+     * 4. 验证返回结果中的 learningStatus
+     */
+    @Test
+    void shouldUpdateVocabularyWordLearningStatus() throws Exception {
+
+        VocabularyWord word = new VocabularyWord();
+        word.setWord("allocate");
+        word.setMeaning("分配");
+
+        VocabularyWord savedWord =
+                vocabularyWordRepository.save(word);
+
+        String requestBody = """
+            {
+              "learningStatus": "MASTERED"
+            }
+            """;
+
+        mockMvc.perform(
+                        put(
+                                "/api/vocabulary/words/{id}/status",
+                                savedWord.getId()
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.learningStatus")
+                                .value("MASTERED")
+                );
     }
 }
