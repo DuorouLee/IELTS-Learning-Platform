@@ -3,6 +3,7 @@ package com.duorou.ieltsbackend.vocabulary.service;
 import com.duorou.ieltsbackend.vocabulary.entity.VocabularyWord;
 import com.duorou.ieltsbackend.vocabulary.repository.VocabularyWordRepository;
 import org.springframework.stereotype.Service;
+import com.duorou.ieltsbackend.vocabulary.exception.DuplicateVocabularyWordException;
 
 import java.util.List;
 
@@ -64,13 +65,27 @@ public class VocabularyWordService {
     /**
      * 创建一个新的 Vocabulary Word。
      *
-     * Controller 接收到前端传来的单词后，
-     * 会调用这个方法。
+     * 保存之前先检查数据库中是否已经存在相同单词。
      *
-     * save() 是 Spring Data JPA 已经提供的方法，
-     * 会把 VocabularyWord 保存到 vocabulary_word 表。
+     * 如果已经存在：
+     * 抛出 DuplicateVocabularyWordException。
+     *
+     * 如果不存在：
+     * 才真正调用 save()。
      */
     public VocabularyWord createWord(VocabularyWord vocabularyWord) {
+
+        /**
+         * existsByWord(...) 是 Repository 中已经定义的方法。
+         *
+         * Spring Data JPA 会自动生成对应的数据库查询。
+         */
+        if (vocabularyWordRepository.existsByWord(vocabularyWord.getWord())) {
+            throw new DuplicateVocabularyWordException(
+                    vocabularyWord.getWord()
+            );
+        }
+
         return vocabularyWordRepository.save(vocabularyWord);
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.duorou.ieltsbackend.reading.exception.ReadingTestNotFoundException;
+import com.duorou.ieltsbackend.vocabulary.exception.DuplicateVocabularyWordException;
 
 import java.util.Map;
 
@@ -46,6 +47,33 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(body);
+    }
+
+    /**
+     * Vocabulary 单词重复时返回 HTTP 400 Bad Request。
+     *
+     * 例如：
+     *
+     * POST /api/vocabulary/words
+     *
+     * 如果 abandon 已经存在，
+     * Service 会抛出 DuplicateVocabularyWordException。
+     *
+     * 这里负责把 Java 异常转换成 HTTP Response。
+     */
+    @ExceptionHandler(DuplicateVocabularyWordException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicateVocabularyWordException(
+            DuplicateVocabularyWordException exception
+    ) {
+
+        Map<String, String> body = Map.of(
+                "message",
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(body);
     }
 }

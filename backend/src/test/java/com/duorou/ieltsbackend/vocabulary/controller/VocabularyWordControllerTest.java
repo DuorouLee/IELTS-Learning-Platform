@@ -112,4 +112,69 @@ class VocabularyWordControllerTest {
                                 .value("They had to abandon the plan.")
                 );
     }
+
+    /**
+     * 测试不能重复创建同一个单词。
+     *
+     * 场景：
+     *
+     * 第一次 POST：
+     *
+     * abandon
+     *
+     * 应该创建成功。
+     *
+     * 第二次再次 POST：
+     *
+     * abandon
+     *
+     * 应该被后端主动拒绝，
+     * 返回 HTTP 400 Bad Request。
+     *
+     * 这个测试的目的不是依赖数据库 UNIQUE 约束报错，
+     * 而是要求我们后面的 Service 层主动判断：
+     *
+     * vocabularyWordRepository.existsByWord(...)
+     */
+    @Test
+    void shouldRejectDuplicateVocabularyWord() throws Exception {
+
+        String requestBody = """
+            {
+              "word": "abandon",
+              "meaning": "放弃；抛弃",
+              "exampleSentence": "They had to abandon the plan."
+            }
+            """;
+
+        /**
+         * 第一次创建。
+         *
+         * 此时数据库中还没有 abandon，
+         * 所以应该成功。
+         */
+        mockMvc.perform(
+                        post("/api/vocabulary/words")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isOk());
+
+        /**
+         * 第二次创建相同的 abandon。
+         *
+         * 我们希望后端以后返回：
+         *
+         * HTTP 400 Bad Request
+         *
+         * 当前代码还没有这个业务校验，
+         * 所以这个测试现在应该失败。
+         */
+        mockMvc.perform(
+                        post("/api/vocabulary/words")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isBadRequest());
+    }
 }
