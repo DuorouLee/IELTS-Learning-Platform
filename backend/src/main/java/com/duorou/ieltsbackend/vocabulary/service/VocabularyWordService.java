@@ -106,4 +106,25 @@ public class VocabularyWordService {
                         new VocabularyWordNotFoundException(id)
                 );
     }
+
+    /**
+     * 根据 id 删除一个 Vocabulary Word。
+     *
+     * 删除之前先检查该 id 是否存在。
+     *
+     * 如果不存在：
+     * 抛出 VocabularyWordNotFoundException，
+     * 最终由 GlobalExceptionHandler 转换成 404。
+     *
+     * 如果存在：
+     * 调用 JpaRepository 提供的 deleteById(id) 删除。
+     */
+    public void deleteWordById(Long id) {
+
+        if (!vocabularyWordRepository.existsById(id)) {
+            throw new VocabularyWordNotFoundException(id);
+        }
+
+        vocabularyWordRepository.deleteById(id);
+    }
 }

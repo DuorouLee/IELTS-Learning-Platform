@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 import com.duorou.ieltsbackend.vocabulary.entity.VocabularyWord;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -233,5 +235,41 @@ class VocabularyWordControllerTest {
                         jsonPath("$.message")
                                 .value("Vocabulary word not found: 999999")
                 );
+    }
+
+    /**
+     * 测试根据 id 删除一个 Vocabulary Word。
+     *
+     * 测试步骤：
+     *
+     * 1. 先保存一个单词
+     * 2. 调用 DELETE /api/vocabulary/words/{id}
+     * 3. 期望返回 204 No Content
+     * 4. 再检查数据库，确认这个单词已经不存在
+     */
+    @Test
+    void shouldDeleteVocabularyWordById() throws Exception {
+
+        VocabularyWord word = new VocabularyWord();
+        word.setWord("derive");
+        word.setMeaning("获得；得出");
+        word.setExampleSentence("Many English words derive from Latin.");
+
+        VocabularyWord savedWord = vocabularyWordRepository.save(word);
+
+        mockMvc.perform(
+                        delete("/api/vocabulary/words/{id}", savedWord.getId())
+                )
+                .andExpect(status().isNoContent());
+
+        /**
+         * 删除以后，
+         * Repository 不应该再找到这条数据。
+         */
+        boolean exists = vocabularyWordRepository.existsById(
+                savedWord.getId()
+        );
+
+        assertFalse(exists);
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
 
@@ -128,5 +130,29 @@ public class VocabularyWordController {
             @PathVariable Long id
     ) {
         return vocabularyWordService.getWordById(id);
+    }
+
+    /**
+     * 根据 id 删除 Vocabulary Word。
+     *
+     * 请求：
+     *
+     * DELETE /api/vocabulary/words/3
+     *
+     * 删除成功后返回：
+     *
+     * HTTP 204 No Content
+     *
+     * 204 的意思是：
+     * 请求成功，但响应体不需要返回数据。
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWordById(
+            @PathVariable Long id
+    ) {
+
+        vocabularyWordService.deleteWordById(id);
+
+        return ResponseEntity.noContent().build();
     }
 }
