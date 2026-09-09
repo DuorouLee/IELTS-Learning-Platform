@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -29,6 +30,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import org.springframework.http.MediaType;
+
+import com.duorou.ieltsbackend.reading.entity.ReadingPracticeRecord;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * ReadingTestController 的自动化测试。
@@ -970,5 +976,171 @@ class ReadingTestControllerTest {
 
         // 验证提交时间已经生成
         assertNotNull(record.getSubmittedAt());
+    }
+
+    /**
+     * 测试：
+     *
+     * DELETE /api/reading/practice-history/{id}
+     *
+     * 删除一条 Reading Practice History 后，
+     * 数据库中应该不再存在这条记录。
+     */
+    @Test
+    void shouldDeleteReadingPracticeHistory() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建一个 Reading Test
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Delete History Test");
+        readingTest.setSource("Controller Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        // -----------------------------
+        // 2. 创建一条 Practice History
+        // -----------------------------
+        ReadingPracticeRecord record = new ReadingPracticeRecord();
+
+        record.setReadingTest(savedTest);
+        record.setCorrectCount(1);
+        record.setTotalQuestions(1);
+        record.setPercentage(100.0);
+        record.setSubmittedAt(System.currentTimeMillis());
+
+        ReadingPracticeRecord savedRecord =
+                readingPracticeRecordRepository.save(record);
+
+
+        // 删除之前，数据库中应该存在这条记录
+        assertTrue(
+                readingPracticeRecordRepository.existsById(
+                        savedRecord.getId()
+                )
+        );
+
+
+        // -----------------------------
+        // Act
+        // 调用 DELETE API
+        // -----------------------------
+        mockMvc.perform(
+                        delete(
+                                "/api/reading/practice-history/{id}",
+                                savedRecord.getId()
+                        )
+                )
+                .andExpect(status().isOk());
+
+
+        // -----------------------------
+        // Assert
+        // 删除以后数据库中不应该再存在
+        // -----------------------------
+        assertFalse(
+                readingPracticeRecordRepository.existsById(
+                        savedRecord.getId()
+                )
+        );
+    }
+
+    /**
+     * 测试：
+     *
+     * GET /api/reading/practice-history
+     *
+     * 目标：
+     * Practice History 应该按照 submittedAt
+     * 从新到旧返回。
+     */
+    @Test
+    void shouldReturnPracticeHistoryFromNewestToOldest() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建两个 Reading Test
+        // -----------------------------
+        ReadingTest firstTest = new ReadingTest();
+        firstTest.setTitle("Older Practice Test");
+        firstTest.setSource("Controller Test");
+
+        ReadingTest savedFirstTest =
+                readingTestRepository.save(firstTest);
+
+        ReadingTest secondTest = new ReadingTest();
+        secondTest.setTitle("Newer Practice Test");
+        secondTest.setSource("Controller Test");
+
+        ReadingTest savedSecondTest =
+                readingTestRepository.save(secondTest);
+
+
+        // -----------------------------
+        // 2. 创建较早的一条历史记录
+        // -----------------------------
+        ReadingPracticeRecord olderRecord =
+                new ReadingPracticeRecord();
+
+        olderRecord.setReadingTest(savedFirstTest);
+        olderRecord.setCorrectCount(1);
+        olderRecord.setTotalQuestions(2);
+        olderRecord.setPercentage(50.0);
+
+        // 较早时间
+        olderRecord.setSubmittedAt(1000L);
+
+        readingPracticeRecordRepository.save(olderRecord);
+
+
+        // -----------------------------
+        // 3. 创建较新的一条历史记录
+        // -----------------------------
+        ReadingPracticeRecord newerRecord =
+                new ReadingPracticeRecord();
+
+        newerRecord.setReadingTest(savedSecondTest);
+        newerRecord.setCorrectCount(2);
+        newerRecord.setTotalQuestions(2);
+        newerRecord.setPercentage(100.0);
+
+        // 较新时间
+        newerRecord.setSubmittedAt(2000L);
+
+        readingPracticeRecordRepository.save(newerRecord);
+
+
+        // -----------------------------
+        // Act + Assert
+        // -----------------------------
+        mockMvc.perform(
+                        get("/api/reading/practice-history")
+                )
+                .andExpect(status().isOk())
+
+                // 第一条必须是较新的记录
+                .andExpect(
+                        jsonPath("$[0].submittedAt")
+                                .value(2000)
+                )
+
+                .andExpect(
+                        jsonPath("$[0].percentage")
+                                .value(100.0)
+                )
+
+                // 第二条才是较旧记录
+                .andExpect(
+                        jsonPath("$[1].submittedAt")
+                                .value(1000)
+                )
+
+                .andExpect(
+                        jsonPath("$[1].percentage")
+                                .value(50.0)
+                );
     }
 }

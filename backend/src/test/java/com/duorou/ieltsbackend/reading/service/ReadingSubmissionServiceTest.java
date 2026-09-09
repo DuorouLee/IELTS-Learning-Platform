@@ -505,4 +505,82 @@ class ReadingSubmissionServiceTest {
                         .contains("Reading test not found")
         );
     }
+
+    /**
+     * 测试：
+     *
+     * 如果一个 Reading Test 下面没有任何 Question，
+     * 提交时不能发生除以 0。
+     *
+     * 预期：
+     *
+     * totalQuestions = 0
+     * correctCount = 0
+     * incorrectCount = 0
+     * percentage = 0.0
+     */
+    @Test
+    void shouldReturnZeroPercentageWhenTestHasNoQuestions() {
+
+        /*
+         * 创建一个真实存在的 Reading Test，
+         * 但故意不创建 Passage / Question。
+         */
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Empty Reading Test");
+        readingTest.setSource("Integration Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        /*
+         * 用户没有任何答案。
+         */
+        ReadingSubmitRequest request =
+                new ReadingSubmitRequest();
+
+        request.setAnswers(new HashMap<>());
+
+
+        /*
+         * 调用判分 Service。
+         */
+        ReadingSubmitResponse response =
+                readingSubmissionService.submitTest(
+                        savedTest.getId(),
+                        request
+                );
+
+
+        /*
+         * 没有任何题目。
+         */
+        assertEquals(
+                0,
+                response.getTotalQuestions()
+        );
+
+        assertEquals(
+                0,
+                response.getCorrectCount()
+        );
+
+        assertEquals(
+                0,
+                response.getIncorrectCount()
+        );
+
+        /*
+         * 最重要：
+         *
+         * 不能出现 NaN、Infinity 或异常，
+         * 应该明确返回 0%。
+         */
+        assertEquals(
+                0.0,
+                response.getPercentage(),
+                0.001
+        );
+    }
 }
