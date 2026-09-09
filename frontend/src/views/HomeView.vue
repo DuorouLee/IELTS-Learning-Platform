@@ -7,10 +7,26 @@ import {
   type ReadingTest,
 } from '@/api/reading'
 
+/**
+ * 保存后端返回的 Reading Test 列表。
+ */
 const readingTests = ref<ReadingTest[]>([])
+
+/**
+ * 页面是否正在加载 Reading Test。
+ */
 const loading = ref(true)
+
+/**
+ * 如果请求失败，
+ * 保存错误信息。
+ */
 const errorMessage = ref('')
 
+/**
+ * 页面加载完成以后，
+ * 自动请求 Reading Test 列表。
+ */
 onMounted(async () => {
   try {
     readingTests.value = await getReadingTests()
@@ -24,6 +40,21 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+/**
+ * 开始一次全新的 Reading Practice。
+ *
+ * ReadingTestView 实际保存答案使用的 key 是：
+ *
+ * reading-test-{testId}-answers
+ *
+ * 所以这里必须删除完全相同的 key。
+ */
+function startNewReadingPractice(testId: number) {
+  const localStorageKey = `reading-test-${testId}-answers`
+
+  localStorage.removeItem(localStorageKey)
+}
 </script>
 
 <template>
@@ -51,18 +82,22 @@ onMounted(async () => {
         </RouterLink>
       </div>
 
+      <!-- 正在加载 -->
       <p v-if="loading">
         正在加载 Reading Tests...
       </p>
 
+      <!-- 加载失败 -->
       <p v-else-if="errorMessage" class="error-message">
         {{ errorMessage }}
       </p>
 
+      <!-- 没有 Test -->
       <p v-else-if="readingTests.length === 0">
         暂无 Reading Test
       </p>
 
+      <!-- Reading Test 列表 -->
       <div v-else class="test-list">
         <article v-for="test in readingTests" :key="test.id" class="test-card">
           <div>
@@ -75,7 +110,24 @@ onMounted(async () => {
             </p>
           </div>
 
-          <RouterLink :to="`/reading/tests/${test.id}`" class="practice-link">
+          <!--
+            注意：
+
+            这里不能写死：
+            /reading/tests/3
+
+            因为当前页面是 v-for，
+            每一张 Test Card 都有自己的 test.id。
+
+            例如：
+
+            Test 7
+            → /reading/tests/7
+
+            Test 12
+            → /reading/tests/12
+          -->
+          <RouterLink :to="`/reading/tests/${test.id}`" class="practice-link" @click="startNewReadingPractice(test.id)">
             开始练习
           </RouterLink>
         </article>
