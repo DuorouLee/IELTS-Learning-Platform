@@ -95,19 +95,12 @@ async function submitAnswers() {
   }
 }
 
-function isQuestionCorrect(question: {
-  id: number
-  correctAnswer: string
-}) {
-  const userAnswer = answers.value[question.id]
-
-  if (!userAnswer) {
-    return false
-  }
-
-  return (
-    userAnswer.trim().toLowerCase() ===
-    question.correctAnswer.trim().toLowerCase()
+/**
+ * 根据 questionId 找到后端返回的 Review 结果。
+ */
+function getQuestionReview(questionId: number) {
+  return submitResult.value?.questions.find(
+    (review) => review.questionId === questionId,
   )
 }
 
@@ -278,26 +271,26 @@ watch(
                   <input v-else v-model="answers[question.id]" :disabled="submitResult !== null" class="answer-input"
                     type="text" placeholder="请输入答案" />
 
-                  <div v-if="submitResult" class="question-review" :class="{
-                    correct: isQuestionCorrect(question),
-                    incorrect: !isQuestionCorrect(question),
+                  <div v-if="getQuestionReview(question.id)" class="question-review" :class="{
+                    correct: getQuestionReview(question.id)?.correct,
+                    incorrect: !getQuestionReview(question.id)?.correct,
                   }">
                     <strong>
                       {{
-                        isQuestionCorrect(question)
+                        getQuestionReview(question.id)?.correct
                           ? '✓ Correct'
-                          : '✗ Incorrect'
+                      : '✗ Incorrect'
                       }}
                     </strong>
 
                     <span>
                       Your answer:
-                      {{ answers[question.id] || 'Not answered' }}
+                      {{ getQuestionReview(question.id)?.userAnswer || 'Not answered' }}
                     </span>
 
                     <span>
                       Correct answer:
-                      {{ question.correctAnswer }}
+                      {{ getQuestionReview(question.id)?.correctAnswer }}
                     </span>
                   </div>
                 </div>

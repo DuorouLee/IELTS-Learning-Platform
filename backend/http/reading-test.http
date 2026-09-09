@@ -79,3 +79,23 @@ GET http://localhost:8080/api/reading/tests/2/full
 
 ###
 GET http://localhost:8080/api/reading/tests/3/full
+
+###
+GET http://localhost:8080/api/reading/tests/7/full
+
+###
+POST http://localhost:8080/api/reading/tests/7/submit
+Content-Type: application/json
+
+{
+  "answers": {
+    "79": "viii",
+    "80": "iv"
+  }
+}
+
+###
+GET http://localhost:8080/api/reading/practice-history
+
+###
+DELETE http://localhost:8080/api/reading/practice-history/1
