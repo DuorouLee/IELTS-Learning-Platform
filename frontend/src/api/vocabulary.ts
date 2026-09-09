@@ -26,6 +26,17 @@ export interface VocabularyWord {
   meaning: string
   exampleSentence: string | null
   createdAt: string
+
+  /**
+   * 当前单词的学习状态。
+   *
+   * LEARNING：
+   * 还在学习
+   *
+   * MASTERED：
+   * 已经掌握
+   */
+  learningStatus: 'LEARNING' | 'MASTERED'
 }
 
 /**
@@ -129,4 +140,47 @@ export async function deleteVocabularyWord(id: number): Promise<void> {
   if (!response.ok) {
     throw new Error(`删除 Vocabulary Word 失败：${response.status}`)
   }
+}
+
+/**
+ * 修改 Vocabulary Word 的学习状态。
+ *
+ * 调用后端：
+ *
+ * PUT /api/vocabulary/words/{id}/status
+ *
+ * 请求示例：
+ *
+ * {
+ *   "learningStatus": "MASTERED"
+ * }
+ */
+export async function updateVocabularyLearningStatus(
+  id: number,
+  learningStatus: 'LEARNING' | 'MASTERED',
+): Promise<VocabularyWord> {
+  const response = await fetch(`${API_BASE_URL}/api/vocabulary/words/${id}/status`, {
+    method: 'PUT',
+
+    /**
+     * 告诉 Spring Boot：
+     * 请求体是 JSON。
+     */
+    headers: {
+      'Content-Type': 'application/json',
+    },
+
+    body: JSON.stringify({
+      learningStatus,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`修改 Vocabulary 学习状态失败：${response.status}`)
+  }
+
+  /**
+   * 后端会返回修改后的 VocabularyWord。
+   */
+  return response.json()
 }

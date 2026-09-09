@@ -5,9 +5,9 @@ import {
     createVocabularyWord,
     deleteVocabularyWord,
     getVocabularyWords,
+    updateVocabularyLearningStatus,
     type VocabularyWord,
 } from '@/api/vocabulary'
-
 
 /**
  * words
@@ -132,6 +132,57 @@ async function handleDeleteWord(id: number) {
 }
 
 /**
+ * 切换单词学习状态。
+ *
+ * LEARNING → MASTERED
+ *
+ * MASTERED → LEARNING
+ */
+async function handleToggleLearningStatus(
+    word: VocabularyWord,
+) {
+    /**
+     * 根据当前状态决定下一个状态。
+     */
+    const nextStatus =
+        word.learningStatus === 'MASTERED'
+            ? 'LEARNING'
+            : 'MASTERED'
+
+    try {
+        /**
+         * 调用后端修改数据库。
+         */
+        const updatedWord =
+            await updateVocabularyLearningStatus(
+                word.id,
+                nextStatus,
+            )
+
+        /**
+         * 找到页面数组中的这个单词。
+         */
+        const index = words.value.findIndex(
+            item => item.id === word.id,
+        )
+
+        /**
+         * 使用后端返回的新数据
+         * 替换页面里的旧数据。
+         */
+        if (index !== -1) {
+            words.value[index] = updatedWord
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            errorMessage.value = error.message
+        } else {
+            errorMessage.value = '修改学习状态失败'
+        }
+    }
+}
+
+/**
  * 页面加载完成以后，
  * 自动调用：
  *
@@ -222,6 +273,19 @@ onMounted(async () => {
                     <strong>Example:</strong>
                     {{ word.exampleSentence }}
                 </p>
+
+                <p>
+                    <strong>Status:</strong>
+                    {{ word.learningStatus }}
+                </p>
+
+                <button type="button" @click="handleToggleLearningStatus(word)">
+                    {{
+                        word.learningStatus === 'MASTERED'
+                            ? 'Mark as Learning'
+                    : 'Mark as Mastered'
+                    }}
+                </button>
 
                 <button type="button" @click="handleDeleteWord(word.id)">
                     Delete
