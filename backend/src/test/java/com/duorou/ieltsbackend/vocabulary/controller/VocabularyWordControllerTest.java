@@ -314,4 +314,48 @@ class VocabularyWordControllerTest {
                                 .value("MASTERED")
                 );
     }
+
+    /**
+     * 测试不能把学习状态修改成非法值。
+     *
+     * 当前 Vocabulary 只允许：
+     *
+     * LEARNING
+     * MASTERED
+     *
+     * 如果前端错误地发送：
+     *
+     * {
+     *   "learningStatus": "INVALID"
+     * }
+     *
+     * 后端应该主动拒绝，
+     * 返回 HTTP 400 Bad Request。
+     */
+    @Test
+    void shouldRejectInvalidVocabularyLearningStatus() throws Exception {
+
+        VocabularyWord word = new VocabularyWord();
+        word.setWord("derive");
+        word.setMeaning("获得；得出");
+
+        VocabularyWord savedWord =
+                vocabularyWordRepository.save(word);
+
+        String requestBody = """
+            {
+              "learningStatus": "INVALID"
+            }
+            """;
+
+        mockMvc.perform(
+                        put(
+                                "/api/vocabulary/words/{id}/status",
+                                savedWord.getId()
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isBadRequest());
+    }
 }

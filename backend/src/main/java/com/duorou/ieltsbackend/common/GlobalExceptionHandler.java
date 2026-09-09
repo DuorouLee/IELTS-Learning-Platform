@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.duorou.ieltsbackend.reading.exception.ReadingTestNotFoundException;
 import com.duorou.ieltsbackend.vocabulary.exception.DuplicateVocabularyWordException;
 import com.duorou.ieltsbackend.vocabulary.exception.VocabularyWordNotFoundException;
+import com.duorou.ieltsbackend.vocabulary.exception.InvalidVocabularyLearningStatusException;
 
 import java.util.Map;
 
@@ -94,6 +95,26 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(body);
+    }
+
+    /**
+     * Vocabulary 学习状态非法时，
+     * 返回 HTTP 400 Bad Request。
+     */
+    @ExceptionHandler(InvalidVocabularyLearningStatusException.class)
+    public ResponseEntity<Map<String, String>>
+    handleInvalidVocabularyLearningStatusException(
+            InvalidVocabularyLearningStatusException exception
+    ) {
+
+        Map<String, String> body = Map.of(
+                "message",
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(body);
     }
 }

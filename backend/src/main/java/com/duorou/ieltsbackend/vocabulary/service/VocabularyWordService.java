@@ -5,6 +5,7 @@ import com.duorou.ieltsbackend.vocabulary.repository.VocabularyWordRepository;
 import org.springframework.stereotype.Service;
 import com.duorou.ieltsbackend.vocabulary.exception.DuplicateVocabularyWordException;
 import com.duorou.ieltsbackend.vocabulary.exception.VocabularyWordNotFoundException;
+import com.duorou.ieltsbackend.vocabulary.exception.InvalidVocabularyLearningStatusException;
 
 import java.util.List;
 
@@ -129,20 +130,38 @@ public class VocabularyWordService {
     }
 
     /**
-     * 修改一个 Vocabulary Word 的学习状态。
+     * 修改 Vocabulary Word 的学习状态。
      *
-     * 当前允许的状态：
+     * 当前系统只允许：
      *
      * LEARNING
      * MASTERED
      *
-     * 如果 id 不存在，
-     * 继续复用 VocabularyWordNotFoundException。
+     * Service 层负责业务规则，
+     * 所以前端即使发送错误状态，
+     * 后端也不能直接保存。
      */
     public VocabularyWord updateLearningStatus(
             Long id,
             String learningStatus
     ) {
+
+        /**
+         * 先验证学习状态是否合法。
+         *
+         * equals() 写在固定字符串前面，
+         * 即使 learningStatus 是 null，
+         * 也不会发生 NullPointerException。
+         */
+        boolean validStatus =
+                "LEARNING".equals(learningStatus)
+                        || "MASTERED".equals(learningStatus);
+
+        if (!validStatus) {
+            throw new InvalidVocabularyLearningStatusException(
+                    learningStatus
+            );
+        }
 
         VocabularyWord word = vocabularyWordRepository.findById(id)
                 .orElseThrow(() ->
