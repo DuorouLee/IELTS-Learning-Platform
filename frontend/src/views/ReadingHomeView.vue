@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import AppNavigation from '@/components/AppNavigation.vue'
 
 import {
     getReadingTests,
@@ -51,31 +52,7 @@ onMounted(async () => {
 <template>
     <main class="reading-page">
         <!-- 顶部导航 -->
-        <nav class="top-navigation">
-            <RouterLink to="/" class="brand">
-                <span class="brand-mark">
-                    I
-                </span>
-
-                <span class="brand-text">
-                    IELTS Learning
-                </span>
-            </RouterLink>
-
-            <div class="navigation-links">
-                <RouterLink to="/" class="navigation-link">
-                    Home
-                </RouterLink>
-
-                <RouterLink to="/reading" class="navigation-link active">
-                    Reading
-                </RouterLink>
-
-                <RouterLink to="/vocabulary" class="navigation-link">
-                    Vocabulary
-                </RouterLink>
-            </div>
-        </nav>
+        <AppNavigation />
 
         <!-- 页面标题 -->
         <header class="reading-header">
@@ -187,120 +164,6 @@ onMounted(async () => {
         "Consolas",
         monospace;
 }
-
-
-/* 顶部导航 */
-.top-navigation {
-    width: min(1240px, 100%);
-
-    min-height: 68px;
-
-    margin:
-        0 auto;
-
-    box-sizing: border-box;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    padding:
-        10px 12px 10px 16px;
-
-    background:
-        rgba(255,
-            255,
-            255,
-            0.34);
-
-    border:
-        1px solid rgba(255,
-            255,
-            255,
-            0.68);
-
-    border-radius: 24px;
-
-    backdrop-filter:
-        blur(22px);
-
-    -webkit-backdrop-filter:
-        blur(22px);
-}
-
-
-.brand {
-    display: flex;
-
-    align-items: center;
-
-    gap: 11px;
-
-    color: #26394d;
-
-    text-decoration: none;
-}
-
-
-.brand-mark {
-    width: 38px;
-    height: 38px;
-
-    display: grid;
-
-    place-items: center;
-
-    color: #ffffff;
-
-    background:
-        linear-gradient(145deg,
-            #8ab2d5,
-            #6d97bd);
-
-    border-radius: 13px;
-}
-
-
-.brand-text {
-    font-size: 0.9rem;
-
-    font-weight: 600;
-}
-
-
-.navigation-links {
-    display: flex;
-
-    gap: 5px;
-}
-
-
-.navigation-link {
-    padding:
-        10px 16px;
-
-    color: #667b90;
-
-    text-decoration: none;
-
-    border-radius: 999px;
-
-    font-size: 0.8rem;
-}
-
-
-.navigation-link.active {
-    color: #344f69;
-
-    background:
-        rgba(255,
-            255,
-            255,
-            0.62);
-}
-
 
 /* Header */
 .reading-header {
