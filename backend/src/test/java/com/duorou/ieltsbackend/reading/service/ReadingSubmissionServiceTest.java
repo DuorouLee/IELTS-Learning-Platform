@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * ReadingSubmissionService 集成测试。
@@ -280,6 +281,167 @@ class ReadingSubmissionServiceTest {
                 100.0,
                 response.getPercentage(),
                 0.001
+        );
+    }
+
+    /**
+     * 测试：
+     *
+     * 判分时应该忽略：
+     *
+     * 1. 用户答案前后的空格
+     * 2. 用户答案的大小写
+     *
+     * 例如：
+     *
+     * 正确答案：
+     * TRUE
+     *
+     * 用户提交：
+     * "  true  "
+     *
+     * 仍然应该判定为正确。
+     */
+    @Test
+    void shouldIgnoreCaseAndWhitespaceWhenComparingAnswers() {
+
+        /*
+         * ============================================================
+         * 第一步：创建 ReadingTest
+         * ============================================================
+         */
+        ReadingTest readingTest = new ReadingTest();
+
+        readingTest.setTitle("Answer Normalization Test");
+        readingTest.setSource("Integration Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        /*
+         * ============================================================
+         * 第二步：创建 ReadingPassage
+         * ============================================================
+         */
+        ReadingPassage passage = new ReadingPassage();
+
+        passage.setReadingTest(savedTest);
+        passage.setPassageNumber(1);
+        passage.setTitle("Normalization Passage");
+        passage.setContent("This is a test passage.");
+
+        ReadingPassage savedPassage =
+                readingPassageRepository.save(passage);
+
+
+        /*
+         * ============================================================
+         * 第三步：创建一道题
+         * ============================================================
+         *
+         * 数据库中的标准答案是：
+         *
+         * TRUE
+         */
+        ReadingQuestion question = new ReadingQuestion();
+
+        question.setReadingPassage(savedPassage);
+        question.setQuestionNumber(1);
+        question.setQuestionType("TRUE_FALSE_NOT_GIVEN");
+        question.setQuestionText("This statement is true.");
+        question.setCorrectAnswer("TRUE");
+
+        ReadingQuestion savedQuestion =
+                readingQuestionRepository.save(question);
+
+
+        /*
+         * ============================================================
+         * 第四步：模拟用户答案
+         * ============================================================
+         *
+         * 故意加入：
+         *
+         * - 前后空格
+         * - 小写字母
+         *
+         * 用来验证：
+         *
+         * trim()
+         * equalsIgnoreCase()
+         */
+        Map<Long, String> answers = new HashMap<>();
+
+        answers.put(
+                savedQuestion.getId(),
+                "  true  "
+        );
+
+
+        /*
+         * 创建提交 DTO。
+         */
+        ReadingSubmitRequest request =
+                new ReadingSubmitRequest();
+
+        request.setAnswers(answers);
+
+
+        /*
+         * ============================================================
+         * 第五步：调用 ReadingSubmissionService
+         * ============================================================
+         */
+        ReadingSubmitResponse response =
+                readingSubmissionService.submitTest(
+                        savedTest.getId(),
+                        request
+                );
+
+
+        /*
+         * ============================================================
+         * 第六步：验证判分结果
+         * ============================================================
+         */
+
+        // 总共只有 1 道题。
+        assertEquals(
+                1,
+                response.getTotalQuestions()
+        );
+
+        // 应该答对 1 道。
+        assertEquals(
+                1,
+                response.getCorrectCount()
+        );
+
+        // 没有错误题。
+        assertEquals(
+                0,
+                response.getIncorrectCount()
+        );
+
+        // 正确率应该是 100%。
+        assertEquals(
+                100.0,
+                response.getPercentage(),
+                0.001
+        );
+
+        /*
+         * 最重要的验证：
+         *
+         * "  true  "
+         *
+         * 应该被判定为正确。
+         */
+        assertTrue(
+                response.getQuestions()
+                        .get(0)
+                        .isCorrect()
         );
     }
 }
