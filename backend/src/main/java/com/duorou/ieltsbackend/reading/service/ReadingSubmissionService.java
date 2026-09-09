@@ -10,6 +10,8 @@ import com.duorou.ieltsbackend.reading.dto.ReadingQuestionReviewResponse;
 import com.duorou.ieltsbackend.reading.entity.ReadingPracticeRecord;
 import com.duorou.ieltsbackend.reading.repository.ReadingPracticeRecordRepository;
 import com.duorou.ieltsbackend.reading.exception.ReadingTestNotFoundException;
+import com.duorou.ieltsbackend.reading.entity.ReadingPracticeAnswer;
+import com.duorou.ieltsbackend.reading.repository.ReadingPracticeAnswerRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +65,12 @@ public class ReadingSubmissionService {
     private final ReadingPracticeRecordRepository readingPracticeRecordRepository;
 
     /**
+     * 用来保存每一次 Reading Practice 中，
+     * 每一道题的历史作答结果。
+     */
+    private final ReadingPracticeAnswerRepository readingPracticeAnswerRepository;
+
+    /**
      * 构造器注入。
      * <p>
      * Spring 会自动把 Repository 注入进来。
@@ -70,11 +78,13 @@ public class ReadingSubmissionService {
     public ReadingSubmissionService(
             ReadingQuestionRepository readingQuestionRepository,
             ReadingTestRepository readingTestRepository,
-            ReadingPracticeRecordRepository readingPracticeRecordRepository
+            ReadingPracticeRecordRepository readingPracticeRecordRepository,
+            ReadingPracticeAnswerRepository readingPracticeAnswerRepository
     ) {
         this.readingQuestionRepository = readingQuestionRepository;
         this.readingTestRepository = readingTestRepository;
         this.readingPracticeRecordRepository = readingPracticeRecordRepository;
+        this.readingPracticeAnswerRepository = readingPracticeAnswerRepository;
     }
 
     /**
@@ -239,9 +249,72 @@ public class ReadingSubmissionService {
         practiceRecord.setSubmittedAt(System.currentTimeMillis());
 
         /**
-         * 写入 reading_practice_record 表。
+         * 先保存 Practice Record。
+         *
+         * save() 之后 savedPracticeRecord 会拥有数据库生成的 id，
+         * 后面的 ReadingPracticeAnswer 才能关联到这一次练习。
          */
-        readingPracticeRecordRepository.save(practiceRecord);
+        ReadingPracticeRecord savedPracticeRecord =
+                readingPracticeRecordRepository.save(practiceRecord);
+
+        /**
+         * 保存每一道题的历史作答结果。
+         *
+         * reviewQuestions 是前面判分时已经生成好的，
+         * 所以这里直接把 Review 数据转换成数据库记录。
+         */
+        for (ReadingQuestionReviewResponse review : reviewQuestions) {
+
+            ReadingPracticeAnswer practiceAnswer =
+                    new ReadingPracticeAnswer();
+
+            /**
+             * 这道答案属于哪一次 Practice。
+             */
+            practiceAnswer.setPracticeRecord(savedPracticeRecord);
+
+            /**
+             * 保存原始 Question ID。
+             */
+            practiceAnswer.setQuestionId(
+                    review.getQuestionId()
+            );
+
+            /**
+             * 保存 IELTS 题号。
+             */
+            practiceAnswer.setQuestionNumber(
+                    review.getQuestionNumber()
+            );
+
+            /**
+             * 保存用户当时提交的答案。
+             *
+             * 未作答时允许为 null。
+             */
+            practiceAnswer.setUserAnswer(
+                    review.getUserAnswer()
+            );
+
+            /**
+             * 保存当时的正确答案快照。
+             */
+            practiceAnswer.setCorrectAnswer(
+                    review.getCorrectAnswer()
+            );
+
+            /**
+             * 保存当时是否答对。
+             */
+            practiceAnswer.setCorrect(
+                    review.isCorrect()
+            );
+
+            /**
+             * 写入 reading_practice_answer 表。
+             */
+            readingPracticeAnswerRepository.save(practiceAnswer);
+        }
 
         /**
          * 返回最终判分结果。

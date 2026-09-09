@@ -8,6 +8,10 @@ import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import com.duorou.ieltsbackend.reading.repository.ReadingPassageRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
+import com.duorou.ieltsbackend.reading.entity.ReadingPracticeAnswer;
+import com.duorou.ieltsbackend.reading.repository.ReadingPracticeAnswerRepository;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -74,6 +78,28 @@ class ReadingSubmissionServiceTest {
 
     @Autowired
     private ReadingQuestionRepository readingQuestionRepository;
+
+    /**
+     * 用于验证 submit 后，
+     * 每一道题的历史答案是否真的保存到了数据库。
+     */
+    @Autowired
+    private ReadingPracticeAnswerRepository readingPracticeAnswerRepository;
+
+    /**
+     * 每个测试开始前清理相关测试数据，
+     * 保证不同测试之间互不影响。
+     *
+     * 删除顺序要从子表到父表，
+     * 避免外键约束问题。
+     */
+    @BeforeEach
+    void setUp() {
+        readingPracticeAnswerRepository.deleteAll();
+        readingQuestionRepository.deleteAll();
+        readingPassageRepository.deleteAll();
+        readingTestRepository.deleteAll();
+    }
 
     /**
      * 测试场景：
@@ -582,6 +608,152 @@ class ReadingSubmissionServiceTest {
                 0.0,
                 response.getPercentage(),
                 0.001
+        );
+    }
+
+    /**
+     * 测试：
+     *
+     * 用户提交 Reading Test 以后，
+     * 每一道题的 Review 结果都应该保存成 ReadingPracticeAnswer。
+     */
+    @Test
+    void shouldSavePracticeAnswersAfterSubmit() {
+
+        /*
+         * ============================================================
+         * 第一步：创建 ReadingTest
+         * ============================================================
+         */
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Practice Answer Persistence Test");
+        readingTest.setSource("Integration Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        /*
+         * ============================================================
+         * 第二步：创建 Passage
+         * ============================================================
+         */
+        ReadingPassage passage = new ReadingPassage();
+
+        passage.setReadingTest(savedTest);
+        passage.setPassageNumber(1);
+        passage.setTitle("Practice Answer Passage");
+        passage.setContent("This is a test passage.");
+
+        ReadingPassage savedPassage =
+                readingPassageRepository.save(passage);
+
+
+        /*
+         * ============================================================
+         * 第三步：创建一道题
+         * ============================================================
+         */
+        ReadingQuestion question = new ReadingQuestion();
+
+        question.setReadingPassage(savedPassage);
+        question.setQuestionNumber(1);
+        question.setQuestionType("TRUE_FALSE_NOT_GIVEN");
+        question.setQuestionText("This statement is true.");
+        question.setCorrectAnswer("TRUE");
+
+        ReadingQuestion savedQuestion =
+                readingQuestionRepository.save(question);
+
+
+        /*
+         * ============================================================
+         * 第四步：模拟用户提交答案
+         * ============================================================
+         */
+        Map<Long, String> answers = new HashMap<>();
+
+        answers.put(
+                savedQuestion.getId(),
+                "FALSE"
+        );
+
+        ReadingSubmitRequest request =
+                new ReadingSubmitRequest();
+
+        request.setAnswers(answers);
+
+
+        /*
+         * ============================================================
+         * 第五步：执行 submit
+         * ============================================================
+         */
+        readingSubmissionService.submitTest(
+                savedTest.getId(),
+                request
+        );
+
+
+        /*
+         * ============================================================
+         * 第六步：查询 ReadingPracticeAnswer
+         * ============================================================
+         *
+         * 当前这次测试只创建了一道题，
+         * 所以应该只保存一条历史答案。
+         */
+        var answersInDatabase =
+                readingPracticeAnswerRepository.findAll();
+
+        assertEquals(
+                1,
+                answersInDatabase.size()
+        );
+
+        ReadingPracticeAnswer savedAnswer =
+                answersInDatabase.get(0);
+
+
+        /*
+         * 验证原始 Question 信息。
+         */
+        assertEquals(
+                savedQuestion.getId(),
+                savedAnswer.getQuestionId()
+        );
+
+        assertEquals(
+                1,
+                savedAnswer.getQuestionNumber()
+        );
+
+
+        /*
+         * 用户提交的是 FALSE。
+         */
+        assertEquals(
+                "FALSE",
+                savedAnswer.getUserAnswer()
+        );
+
+
+        /*
+         * 正确答案快照应该是 TRUE。
+         */
+        assertEquals(
+                "TRUE",
+                savedAnswer.getCorrectAnswer()
+        );
+
+
+        /*
+         * 因为 FALSE != TRUE，
+         * 所以应该判定为错误。
+         */
+        assertEquals(
+                false,
+                savedAnswer.isCorrect()
         );
     }
 }
