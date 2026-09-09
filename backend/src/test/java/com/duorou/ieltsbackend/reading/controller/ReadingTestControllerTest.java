@@ -3,12 +3,15 @@ package com.duorou.ieltsbackend.reading.controller;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingPassageRepository;
+import com.duorou.ieltsbackend.reading.repository.ReadingPracticeRecordRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
 import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -98,6 +101,13 @@ class ReadingTestControllerTest {
     private ReadingQuestionRepository readingQuestionRepository;
 
     /**
+     * 用于验证 Reading Test 提交之后，
+     * Practice History 是否真的保存到了数据库。
+     */
+    @Autowired
+    private ReadingPracticeRecordRepository readingPracticeRecordRepository;
+
+    /**
      * Spring Boot 4 默认使用 Jackson 3。
      *
      * JsonMapper 的作用：
@@ -122,9 +132,18 @@ class ReadingTestControllerTest {
     @BeforeEach
     void setUp() {
 
+        /**
+         * ReadingPracticeRecord 依赖 ReadingTest。
+         *
+         * 所以必须先删除 Practice History，
+         * 再删除 ReadingTest。
+         */
+        readingPracticeRecordRepository.deleteAll();
+
+        readingQuestionRepository.deleteAll();
+        readingPassageRepository.deleteAll();
         readingTestRepository.deleteAll();
     }
-
 
     /**
      * 测试：
@@ -434,5 +453,522 @@ class ReadingTestControllerTest {
                                 "$.passages[0].questions[0].correctAnswer"
                         ).doesNotExist()
                 );
+    }
+
+    /**
+     * 测试：
+     *
+     * POST /api/reading/tests/{id}/submit
+     *
+     * 目标：
+     * 1. 用户提交正确答案
+     * 2. 后端负责判分
+     * 3. 提交以后才返回 correctAnswer
+     * 4. 返回单题 correct 状态
+     * 5. 返回整体正确率
+     */
+    @Test
+    void shouldSubmitReadingTestAndReturnReviewResult() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建 Reading Test
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Reading Submit Test");
+        readingTest.setSource("Controller Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        // -----------------------------
+        // 2. 创建 Passage
+        // -----------------------------
+        ReadingPassage passage = new ReadingPassage();
+
+        passage.setReadingTest(savedTest);
+        passage.setPassageNumber(1);
+        passage.setTitle("Submit Test Passage");
+        passage.setContent("This is a test passage.");
+
+        ReadingPassage savedPassage =
+                readingPassageRepository.save(passage);
+
+
+        // -----------------------------
+        // 3. 创建一道 Question
+        //
+        // 正确答案设置为 TRUE。
+        // -----------------------------
+        ReadingQuestion question = new ReadingQuestion();
+
+        question.setReadingPassage(savedPassage);
+        question.setQuestionNumber(1);
+        question.setQuestionType("TRUE_FALSE_NOT_GIVEN");
+        question.setQuestionText("This is a test question.");
+        question.setCorrectAnswer("TRUE");
+
+        ReadingQuestion savedQuestion =
+                readingQuestionRepository.save(question);
+
+
+        // -----------------------------
+        // 4. 模拟前端提交答案
+        //
+        // answers 的 key 必须是数据库中的 questionId。
+        //
+        // 最终 JSON 类似：
+        //
+        // {
+        //   "answers": {
+        //     "15": "TRUE"
+        //   }
+        // }
+        // -----------------------------
+        String requestJson = """
+            {
+              "answers": {
+                "%d": "TRUE"
+              }
+            }
+            """.formatted(savedQuestion.getId());
+
+
+        // -----------------------------
+        // Act + Assert
+        //
+        // 模拟发送：
+        //
+        // POST /api/reading/tests/{id}/submit
+        // -----------------------------
+        mockMvc.perform(
+                        post(
+                                "/api/reading/tests/{id}/submit",
+                                savedTest.getId()
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson)
+                )
+
+                // HTTP 请求应该成功
+                .andExpect(
+                        status().isOk()
+                )
+
+                // 一共只有 1 道题
+                .andExpect(
+                        jsonPath("$.totalQuestions")
+                                .value(1)
+                )
+
+                // 用户答对了这 1 道题
+                .andExpect(
+                        jsonPath("$.correctCount")
+                                .value(1)
+                )
+
+                // 没有错误题
+                .andExpect(
+                        jsonPath("$.incorrectCount")
+                                .value(0)
+                )
+
+                // 1 / 1 = 100%
+                .andExpect(
+                        jsonPath("$.percentage")
+                                .value(100.0)
+                )
+
+                // -----------------------------
+                // 以下是最关键的 Review 验证
+                // -----------------------------
+
+                // 返回的必须是刚才那道题
+                .andExpect(
+                        jsonPath("$.questions[0].questionId")
+                                .value(savedQuestion.getId())
+                )
+
+                // 用户提交的答案
+                .andExpect(
+                        jsonPath("$.questions[0].userAnswer")
+                                .value("TRUE")
+                )
+
+                // submit 以后允许返回正确答案
+                .andExpect(
+                        jsonPath("$.questions[0].correctAnswer")
+                                .value("TRUE")
+                )
+
+                // 后端判定该题正确
+                .andExpect(
+                        jsonPath("$.questions[0].correct")
+                                .value(true)
+                );
+    }
+
+    /**
+     * 测试：
+     *
+     * POST /api/reading/tests/{id}/submit
+     *
+     * 用户提交错误答案时：
+     * 1. correctCount 应该是 0
+     * 2. percentage 应该是 0
+     * 3. 单题 correct 应该是 false
+     * 4. submit 后仍然要返回正确答案，供 Review 使用
+     */
+    @Test
+    void shouldReturnIncorrectReviewWhenAnswerIsWrong() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建 Reading Test
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Wrong Answer Test");
+        readingTest.setSource("Controller Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        // -----------------------------
+        // 2. 创建 Passage
+        // -----------------------------
+        ReadingPassage passage = new ReadingPassage();
+
+        passage.setReadingTest(savedTest);
+        passage.setPassageNumber(1);
+        passage.setTitle("Wrong Answer Passage");
+        passage.setContent("This is a test passage.");
+
+        ReadingPassage savedPassage =
+                readingPassageRepository.save(passage);
+
+
+        // -----------------------------
+        // 3. 创建一道题
+        //
+        // 正确答案是 TRUE
+        // -----------------------------
+        ReadingQuestion question = new ReadingQuestion();
+
+        question.setReadingPassage(savedPassage);
+        question.setQuestionNumber(1);
+        question.setQuestionType("TRUE_FALSE_NOT_GIVEN");
+        question.setQuestionText("This statement is true.");
+        question.setCorrectAnswer("TRUE");
+
+        ReadingQuestion savedQuestion =
+                readingQuestionRepository.save(question);
+
+
+        // -----------------------------
+        // 4. 故意提交错误答案 FALSE
+        // -----------------------------
+        String requestJson = """
+            {
+              "answers": {
+                "%d": "FALSE"
+              }
+            }
+            """.formatted(savedQuestion.getId());
+
+
+        // -----------------------------
+        // Act + Assert
+        // -----------------------------
+        mockMvc.perform(
+                        post(
+                                "/api/reading/tests/{id}/submit",
+                                savedTest.getId()
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson)
+                )
+
+                .andExpect(status().isOk())
+
+                // 一共 1 道题
+                .andExpect(
+                        jsonPath("$.totalQuestions")
+                                .value(1)
+                )
+
+                // 没有答对
+                .andExpect(
+                        jsonPath("$.correctCount")
+                                .value(0)
+                )
+
+                // 1 道答错
+                .andExpect(
+                        jsonPath("$.incorrectCount")
+                                .value(1)
+                )
+
+                // 正确率 0%
+                .andExpect(
+                        jsonPath("$.percentage")
+                                .value(0.0)
+                )
+
+                // 用户实际提交 FALSE
+                .andExpect(
+                        jsonPath("$.questions[0].userAnswer")
+                                .value("FALSE")
+                )
+
+                // 正确答案仍然是 TRUE
+                .andExpect(
+                        jsonPath("$.questions[0].correctAnswer")
+                                .value("TRUE")
+                )
+
+                // 后端必须判断为错误
+                .andExpect(
+                        jsonPath("$.questions[0].correct")
+                                .value(false)
+                );
+    }
+
+    /**
+     * 测试：
+     *
+     * 用户没有回答某一道题时，
+     * 后端应该把它判定为错误，
+     * 并且 Review 中的 userAnswer 应该为空。
+     */
+    @Test
+    void shouldTreatUnansweredQuestionAsIncorrect() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建 Reading Test
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Unanswered Test");
+        readingTest.setSource("Controller Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        // -----------------------------
+        // 2. 创建 Passage
+        // -----------------------------
+        ReadingPassage passage = new ReadingPassage();
+
+        passage.setReadingTest(savedTest);
+        passage.setPassageNumber(1);
+        passage.setTitle("Unanswered Passage");
+        passage.setContent("This is a test passage.");
+
+        ReadingPassage savedPassage =
+                readingPassageRepository.save(passage);
+
+
+        // -----------------------------
+        // 3. 创建一道题
+        // -----------------------------
+        ReadingQuestion question = new ReadingQuestion();
+
+        question.setReadingPassage(savedPassage);
+        question.setQuestionNumber(1);
+        question.setQuestionType("TRUE_FALSE_NOT_GIVEN");
+        question.setQuestionText("This is a test question.");
+        question.setCorrectAnswer("TRUE");
+
+        ReadingQuestion savedQuestion =
+                readingQuestionRepository.save(question);
+
+
+        // -----------------------------
+        // 4. answers 是空对象
+        //
+        // 表示用户没有回答任何题目。
+        // -----------------------------
+        String requestJson = """
+            {
+              "answers": {}
+            }
+            """;
+
+
+        // -----------------------------
+        // Act + Assert
+        // -----------------------------
+        mockMvc.perform(
+                        post(
+                                "/api/reading/tests/{id}/submit",
+                                savedTest.getId()
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson)
+                )
+
+                .andExpect(status().isOk())
+
+                // 一共 1 道题
+                .andExpect(
+                        jsonPath("$.totalQuestions")
+                                .value(1)
+                )
+
+                // 未作答，所以答对数量为 0
+                .andExpect(
+                        jsonPath("$.correctCount")
+                                .value(0)
+                )
+
+                // 未作答也算错误
+                .andExpect(
+                        jsonPath("$.incorrectCount")
+                                .value(1)
+                )
+
+                // 正确率应该是 0%
+                .andExpect(
+                        jsonPath("$.percentage")
+                                .value(0.0)
+                )
+
+                // 返回的仍然应该是刚才那道题
+                .andExpect(
+                        jsonPath("$.questions[0].questionId")
+                                .value(savedQuestion.getId())
+                )
+
+                // 用户没有回答，所以 userAnswer 不应该有值
+                .andExpect(
+                        jsonPath("$.questions[0].userAnswer")
+                                .doesNotExist()
+                )
+
+                // submit 后允许查看正确答案
+                .andExpect(
+                        jsonPath("$.questions[0].correctAnswer")
+                                .value("TRUE")
+                )
+
+                // 未作答应该判错
+                .andExpect(
+                        jsonPath("$.questions[0].correct")
+                                .value(false)
+                );
+    }
+
+    /**
+     * 测试：
+     *
+     * POST /api/reading/tests/{id}/submit
+     *
+     * 用户提交答案以后，
+     * 后端除了返回判分结果，
+     * 还应该保存一条 Reading Practice History。
+     */
+    @Test
+    void shouldSavePracticeHistoryAfterSubmit() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建 Reading Test
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("Practice History Test");
+        readingTest.setSource("Controller Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        // -----------------------------
+        // 2. 创建 Passage
+        // -----------------------------
+        ReadingPassage passage = new ReadingPassage();
+
+        passage.setReadingTest(savedTest);
+        passage.setPassageNumber(1);
+        passage.setTitle("History Passage");
+        passage.setContent("This is a test passage.");
+
+        ReadingPassage savedPassage =
+                readingPassageRepository.save(passage);
+
+
+        // -----------------------------
+        // 3. 创建一道题
+        // -----------------------------
+        ReadingQuestion question = new ReadingQuestion();
+
+        question.setReadingPassage(savedPassage);
+        question.setQuestionNumber(1);
+        question.setQuestionType("TRUE_FALSE_NOT_GIVEN");
+        question.setQuestionText("This is a test question.");
+        question.setCorrectAnswer("TRUE");
+
+        ReadingQuestion savedQuestion =
+                readingQuestionRepository.save(question);
+
+
+        // -----------------------------
+        // 4. 提交正确答案
+        // -----------------------------
+        String requestJson = """
+            {
+              "answers": {
+                "%d": "TRUE"
+              }
+            }
+            """.formatted(savedQuestion.getId());
+
+
+        // -----------------------------
+        // Act
+        // 调用 submit API
+        // -----------------------------
+        mockMvc.perform(
+                        post(
+                                "/api/reading/tests/{id}/submit",
+                                savedTest.getId()
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson)
+                )
+                .andExpect(status().isOk());
+
+
+        // -----------------------------
+        // Assert
+        // 读取 Practice History
+        // -----------------------------
+        var records =
+                readingPracticeRecordRepository.findAllByOrderBySubmittedAtDesc();
+
+        // 应该保存 1 条记录
+        assertEquals(1, records.size());
+
+        var record = records.get(0);
+
+        // Practice History 应该关联到刚才提交的 Reading Test。
+        // Hibernate 对关联对象的 ID 通常可以直接从代理对象中读取，
+        // 不需要额外加载整个 ReadingTest。
+        assertEquals(
+                savedTest.getId(),
+                record.getReadingTest().getId()
+        );
+
+        // 验证本次练习成绩
+        assertEquals(1, record.getCorrectCount());
+        assertEquals(1, record.getTotalQuestions());
+
+        // 验证正确率
+        assertEquals(100.0, record.getPercentage());
+
+        // 验证提交时间已经生成
+        assertNotNull(record.getSubmittedAt());
     }
 }
