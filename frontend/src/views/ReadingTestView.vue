@@ -283,15 +283,35 @@ watch(
                 </div>
               </div>
 
-              <div v-else-if="group.questionType === 'MATCHING_FEATURES'" class="feature-options">
-                <h4>Options</h4>
+              <!--
+                Matching Features 的可选项参考区。
 
-                <ul>
-                  <li v-for="option in group.options" :key="option.id">
-                    <strong>{{ option.optionValue }}</strong>
-                    {{ option.optionText }}
-                  </li>
-                </ul>
+                这里和 Matching Headings 使用相同的列表结构，
+                这样两种 Matching 题型在视觉上保持一致。
+
+                注意：
+                这里只改变展示方式，
+                不改变 optionValue，
+                所以不会影响答案保存、localStorage 或后端判分。
+              -->
+              <div v-else-if="group.questionType === 'MATCHING_FEATURES'" class="feature-options">
+                <p class="heading-options-label">
+                  MATCHING FEATURES
+                </p>
+
+                <h4>List of Options</h4>
+
+                <div class="heading-reference-list">
+                  <div v-for="option in group.options" :key="option.id" class="heading-reference-item">
+                    <span class="heading-reference-value">
+                      {{ option.optionValue }}
+                    </span>
+
+                    <span>
+                      {{ option.optionText }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div class="question-list">
@@ -366,10 +386,173 @@ watch(
                     </div>
                   </template>
 
+                  <!-- =====================================================
+                    其他 Matching 类型
+
+                    这些题型和 Matching Features 的共同点是：
+                    - 后端提供 group.options
+                    - 用户选择一个 optionValue 作为答案
+                    - 仍然可以复用现有 localStorage / submit / 判分逻辑
+
+                    当前先支持常见的三类：
+                    MATCHING_INFORMATION
+                    MATCHING_NAMES
+                    MATCHING_SENTENCE_ENDINGS
+                    ===================================================== -->
+                  <template v-else-if="
+                    group.questionType === 'MATCHING_INFORMATION' ||
+                    group.questionType === 'MATCHING_NAMES' ||
+                    group.questionType === 'MATCHING_SENTENCE_ENDINGS'
+                  ">
+                    <div class="matching-feature-question">
+                      <div class="matching-question-label">
+                        <span class="matching-question-number">
+                          {{ question.questionNumber }}
+                        </span>
+
+                        <span class="matching-question-text">
+                          {{ question.questionText }}
+                        </span>
+                      </div>
+
+                      <select v-model="answers[question.id]" :disabled="submitResult !== null" class="heading-select">
+                        <option value="">
+                          Select an option
+                        </option>
+
+                        <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                          {{ option.optionValue }}
+                          —
+                          {{ option.optionText }}
+                        </option>
+                      </select>
+                    </div>
+                  </template>
 
                   <!-- =====================================================
-         其他题型
-         ===================================================== -->
+                    TRUE / FALSE / NOT GIVEN
+
+                    这类题目应该使用固定选项，
+                    而不是让用户手动输入文字。
+
+                    answers[question.id] 仍然保存字符串，
+                    所以不会影响：
+                    - localStorage
+                    - submit API
+                    - 后端判分
+                    ===================================================== -->
+                  <template v-else-if="group.questionType === 'TRUE_FALSE_NOT_GIVEN'">
+                    <div class="choice-question">
+                      <div class="matching-question-label">
+                        <span class="matching-question-number">
+                          {{ question.questionNumber }}
+                        </span>
+
+                        <span class="matching-question-text">
+                          {{ question.questionText }}
+                        </span>
+                      </div>
+
+                      <select v-model="answers[question.id]" :disabled="submitResult !== null" class="heading-select">
+                        <option value="">
+                          Select an answer
+                        </option>
+
+                        <option value="TRUE">
+                          TRUE
+                        </option>
+
+                        <option value="FALSE">
+                          FALSE
+                        </option>
+
+                        <option value="NOT GIVEN">
+                          NOT GIVEN
+                        </option>
+                      </select>
+                    </div>
+                  </template>
+
+
+                  <!-- =====================================================
+                    YES / NO / NOT GIVEN
+
+                    和 TFNG 使用相同的 UI 结构，
+                    区别只在选项内容不同。
+                    ===================================================== -->
+                  <template v-else-if="group.questionType === 'YES_NO_NOT_GIVEN'">
+                    <div class="choice-question">
+                      <div class="matching-question-label">
+                        <span class="matching-question-number">
+                          {{ question.questionNumber }}
+                        </span>
+
+                        <span class="matching-question-text">
+                          {{ question.questionText }}
+                        </span>
+                      </div>
+
+                      <select v-model="answers[question.id]" :disabled="submitResult !== null" class="heading-select">
+                        <option value="">
+                          Select an answer
+                        </option>
+
+                        <option value="YES">
+                          YES
+                        </option>
+
+                        <option value="NO">
+                          NO
+                        </option>
+
+                        <option value="NOT GIVEN">
+                          NOT GIVEN
+                        </option>
+                      </select>
+                    </div>
+                  </template>
+
+                  <!-- =====================================================
+                    MULTIPLE CHOICE
+
+                    选择题的选项来自后端 group.options。
+
+                    answers[question.id] 仍然保存 optionValue，
+                    例如 A / B / C / D，
+                    所以可以直接兼容现有：
+                    - localStorage
+                    - submit API
+                    - 后端字符串判分
+                    ===================================================== -->
+                  <template v-else-if="group.questionType === 'MULTIPLE_CHOICE'">
+                    <div class="choice-question">
+                      <div class="matching-question-label">
+                        <span class="matching-question-number">
+                          {{ question.questionNumber }}
+                        </span>
+
+                        <span class="matching-question-text">
+                          {{ question.questionText }}
+                        </span>
+                      </div>
+
+                      <select v-model="answers[question.id]" :disabled="submitResult !== null" class="heading-select">
+                        <option value="">
+                          Select an answer
+                        </option>
+
+                        <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                          {{ option.optionValue }}
+                          —
+                          {{ option.optionText }}
+                        </option>
+                      </select>
+                    </div>
+                  </template>
+
+                  <!-- =====================================================
+                    其他题型
+                    ===================================================== -->
                   <template v-else>
 
                     <p class="question-text">
@@ -583,29 +766,50 @@ watch(
   margin-bottom: 16px;
 }
 
+/*
+ * Matching Headings / Matching Features
+ * 共用的参考选项区域。
+ *
+ * 两种题型使用同一套玻璃卡片，
+ * 避免用户在不同 Matching 题型之间产生视觉割裂。
+ */
 .heading-options,
 .feature-options {
   margin-bottom: 24px;
-  padding: 16px 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fafafa;
+  padding: 18px 20px;
+
+  background: rgba(255, 255, 255, 0.46);
+
+  border: 1px solid rgba(128, 172, 207, 0.26);
+  border-radius: 18px;
+
+  box-shadow:
+    0 10px 30px rgba(96, 139, 174, 0.06);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.heading-options h4,
+.feature-options h4 {
+  margin: 4px 0 12px;
+
+  color: #45637b;
+  font-size: 0.9rem;
+}
+
+.heading-options-label {
+  margin: 0;
+
+  color: #8aa6bc;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .heading-options h4,
 .feature-options h4 {
   margin: 0 0 12px;
-}
-
-.heading-options ul,
-.feature-options ul {
-  margin: 0;
-  padding-left: 24px;
-}
-
-.heading-options li,
-.feature-options li {
-  margin-bottom: 6px;
 }
 
 .question-list {
@@ -911,6 +1115,38 @@ watch(
 
 @media (max-width: 700px) {
   .matching-feature-question {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * TFNG / YNNG 共用的题目布局。
+ *
+ * 这里刻意和 Matching Headings / Matching Features
+ * 保持一致，让整个 Reading Practice 的选择题视觉统一。
+ */
+.choice-question {
+  display: grid;
+  grid-template-columns:
+    minmax(160px, 0.42fr) minmax(0, 1fr);
+
+  align-items: center;
+  gap: 18px;
+
+  padding: 16px 18px;
+  margin-bottom: 12px;
+
+  background: rgba(255, 255, 255, 0.42);
+
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 18px;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+@media (max-width: 700px) {
+  .choice-question {
     grid-template-columns: 1fr;
   }
 }
