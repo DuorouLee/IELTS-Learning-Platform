@@ -76,19 +76,55 @@ async function loadReadingTest() {
   }
 }
 
+/**
+ * 提交 Reading Test。
+ *
+ * 提交成功以后：
+ *
+ * 1. 后端完成判分并保存 Practice History
+ * 2. 当前页面继续显示 Result / Review
+ * 3. 删除 localStorage 中的草稿
+ *
+ * 为什么提交后要删除草稿？
+ *
+ * localStorage 的作用是保存“未完成练习”。
+ *
+ * 一旦已经成功提交，
+ * 这次 Practice 就已经结束，
+ * 它就不应该再被当成草稿恢复。
+ *
+ * 这样用户之后重新进入同一套 Reading Test 时，
+ * 就会从空白答案开始新的练习。
+ */
 async function submitAnswers() {
   submitting.value = true
   submitErrorMessage.value = ''
 
   try {
-    submitResult.value = await submitReadingTest(currentTestId.value, {
-      answers: answers.value,
-    })
+    submitResult.value = await submitReadingTest(
+      currentTestId.value,
+      {
+        answers: answers.value,
+      },
+    )
+
+    /**
+     * 提交成功后删除当前 Test 的草稿。
+     *
+     * 注意：
+     * 必须放在 await submitReadingTest() 成功之后。
+     *
+     * 如果后端提交失败，
+     * 我们仍然需要保留 localStorage，
+     * 避免用户刚刚填写的答案丢失。
+     */
+    localStorage.removeItem(storageKey.value)
   } catch (error) {
     if (error instanceof Error) {
       submitErrorMessage.value = error.message
     } else {
-      submitErrorMessage.value = '提交 Reading Test 时发生未知错误'
+      submitErrorMessage.value =
+        '提交 Reading Test 时发生未知错误'
     }
   } finally {
     submitting.value = false
@@ -259,34 +295,107 @@ watch(
               </div>
 
               <div class="question-list">
+
                 <div v-for="question in group.questions" :key="question.id" class="question-item">
-                  <p class="question-text">
-                    {{ question.questionNumber }}.
-                    {{ question.questionText }}
-                  </p>
 
-                  <select v-if="
-                    group.questionType === 'MATCHING_HEADINGS' ||
-                    group.questionType === 'MATCHING_FEATURES'
-                  " v-model="answers[question.id]" :disabled="submitResult !== null" class="answer-select">
-                    <option value="" disabled>
-                      请选择答案
-                    </option>
+                  <!-- =====================================================
+         Matching Headings
+         ===================================================== -->
+                  <div v-if="group.questionType === 'MATCHING_HEADINGS'" class="matching-heading-question">
 
-                    <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
-                      {{ option.optionValue }}
-                      -
-                      {{ option.optionText }}
-                    </option>
-                  </select>
+                    <div class="matching-question-label">
 
-                  <input v-else v-model="answers[question.id]" :disabled="submitResult !== null" class="answer-input"
-                    type="text" placeholder="请输入答案" />
+                      <span class="matching-question-number">
+                        {{ question.questionNumber }}
+                      </span>
 
+                      <span class="matching-question-text">
+                        {{ question.questionText }}
+                      </span>
+
+                    </div>
+
+
+                    <select v-model="answers[question.id]" :disabled="submitResult !== null" class="heading-select">
+
+                      <option value="">
+                        Select a heading
+                      </option>
+
+                      <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                        {{ option.optionValue }}
+                        —
+                        {{ option.optionText }}
+                      </option>
+
+                    </select>
+
+                  </div>
+
+
+                  <!-- =====================================================
+                    Matching Features
+                    ===================================================== -->
+                  <template v-else-if="group.questionType === 'MATCHING_FEATURES'">
+                    <div class="matching-feature-question">
+
+                      <div class="matching-question-label">
+
+                        <span class="matching-question-number">
+                          {{ question.questionNumber }}
+                        </span>
+
+                        <span class="matching-question-text">
+                          {{ question.questionText }}
+                        </span>
+
+                      </div>
+
+                      <select v-model="answers[question.id]" :disabled="submitResult !== null" class="heading-select">
+                        <option value="">
+                          Select an option
+                        </option>
+
+                        <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
+                          {{ option.optionValue }}
+                          —
+                          {{ option.optionText }}
+                        </option>
+                      </select>
+
+                    </div>
+                  </template>
+
+
+                  <!-- =====================================================
+         其他题型
+         ===================================================== -->
+                  <template v-else>
+
+                    <p class="question-text">
+                      {{ question.questionNumber }}.
+                      {{ question.questionText }}
+                    </p>
+
+                    <input v-model="answers[question.id]" :disabled="submitResult !== null" class="answer-input"
+                      type="text" placeholder="请输入答案" />
+
+                  </template>
+
+
+                  <!-- =====================================================
+         Submit 后 Review
+
+         这一块保持你原来的逻辑。
+         ===================================================== -->
                   <div v-if="getQuestionReview(question.id)" class="question-review" :class="{
-                    correct: getQuestionReview(question.id)?.correct,
-                    incorrect: !getQuestionReview(question.id)?.correct,
+                    correct:
+                      getQuestionReview(question.id)?.correct,
+
+                    incorrect:
+                      !getQuestionReview(question.id)?.correct,
                   }">
+
                     <strong>
                       {{
                         getQuestionReview(question.id)?.correct
@@ -297,15 +406,23 @@ watch(
 
                     <span>
                       Your answer:
-                      {{ getQuestionReview(question.id)?.userAnswer || 'Not answered' }}
+                      {{
+                        getQuestionReview(question.id)?.userAnswer ||
+                        'Not answered'
+                      }}
                     </span>
 
                     <span>
                       Correct answer:
-                      {{ getQuestionReview(question.id)?.correctAnswer }}
+                      {{
+                        getQuestionReview(question.id)?.correctAnswer
+                      }}
                     </span>
+
                   </div>
+
                 </div>
+
               </div>
             </div>
           </section>
@@ -719,6 +836,81 @@ watch(
 
 @media (max-width: 700px) {
   .matching-heading-question {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   List of Headings
+   ============================================================ */
+
+.heading-reference-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.heading-reference-item {
+  display: grid;
+
+  grid-template-columns:
+    42px minmax(0, 1fr);
+
+  gap: 12px;
+
+  padding:
+    10px 12px;
+
+  color: #49657c;
+
+  background:
+    rgba(255, 255, 255, 0.58);
+
+  border:
+    1px solid rgba(128, 172, 207, 0.22);
+
+  border-radius: 12px;
+
+  font-size: 0.76rem;
+
+  line-height: 1.5;
+}
+
+.heading-reference-value {
+  color: #789ab5;
+
+  font-weight: 700;
+}
+
+.matching-feature-question {
+  display: grid;
+
+  grid-template-columns:
+    minmax(160px, 0.42fr) minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 18px;
+
+  padding:
+    16px 18px;
+
+  margin-bottom: 12px;
+
+  background:
+    rgba(255, 255, 255, 0.42);
+
+  border:
+    1px solid rgba(255, 255, 255, 0.72);
+
+  border-radius: 18px;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+@media (max-width: 700px) {
+  .matching-feature-question {
     grid-template-columns: 1fr;
   }
 }
