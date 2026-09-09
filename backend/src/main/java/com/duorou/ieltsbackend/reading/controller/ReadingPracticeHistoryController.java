@@ -2,6 +2,7 @@ package com.duorou.ieltsbackend.reading.controller;
 
 import com.duorou.ieltsbackend.reading.dto.ReadingPracticeRecordResponse;
 import com.duorou.ieltsbackend.reading.service.ReadingPracticeHistoryService;
+import com.duorou.ieltsbackend.reading.dto.ReadingPracticeHistoryDetailResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,5 +48,24 @@ public class ReadingPracticeHistoryController {
             @PathVariable Long id
     ) {
         readingPracticeHistoryService.deletePracticeRecord(id);
+    }
+
+    /**
+     * 查询某一次 Reading Practice 的完整详情。
+     *
+     * GET /api/reading/practice-history/{id}
+     *
+     * 返回：
+     * - 本次练习的基本信息
+     * - 成绩
+     * - 提交时间
+     * - 每一道题的历史作答结果
+     */
+    @GetMapping("/{id}")
+    public ReadingPracticeHistoryDetailResponse getPracticeHistoryDetail(
+            @PathVariable Long id
+    ) {
+        return readingPracticeHistoryService
+                .getPracticeHistoryDetail(id);
     }
 }

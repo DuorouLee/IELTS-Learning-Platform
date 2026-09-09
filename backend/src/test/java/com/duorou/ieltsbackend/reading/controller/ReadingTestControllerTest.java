@@ -7,6 +7,9 @@ import com.duorou.ieltsbackend.reading.repository.ReadingPracticeRecordRepositor
 import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
 import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
+import com.duorou.ieltsbackend.reading.entity.ReadingPracticeAnswer;
+import com.duorou.ieltsbackend.reading.entity.ReadingPracticeRecord;
+import com.duorou.ieltsbackend.reading.repository.ReadingPracticeAnswerRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -125,6 +128,9 @@ class ReadingTestControllerTest {
      */
     @Autowired
     private JsonMapper jsonMapper;
+
+    @Autowired
+    private ReadingPracticeAnswerRepository readingPracticeAnswerRepository;
 
     /**
      * 每一个测试运行之前，
@@ -1260,6 +1266,164 @@ class ReadingTestControllerTest {
                 .andExpect(
                         jsonPath("$.message")
                                 .value("Reading test not found: 999999")
+                );
+    }
+
+    /**
+     * 测试：
+     *
+     * GET /api/reading/practice-history/{id}
+     *
+     * 应该返回：
+     * - Practice 基本信息
+     * - 成绩
+     * - 每一道题的历史答案
+     */
+    @Test
+    void shouldReturnReadingPracticeHistoryDetail() throws Exception {
+
+        // -----------------------------
+        // Arrange
+        // 1. 创建 Reading Test
+        // -----------------------------
+        ReadingTest readingTest = new ReadingTest();
+        readingTest.setTitle("History Detail Test");
+        readingTest.setSource("Controller Test");
+
+        ReadingTest savedTest =
+                readingTestRepository.save(readingTest);
+
+
+        // -----------------------------
+        // 2. 创建 Practice Record
+        // -----------------------------
+        ReadingPracticeRecord record =
+                new ReadingPracticeRecord();
+
+        record.setReadingTest(savedTest);
+        record.setCorrectCount(1);
+        record.setTotalQuestions(2);
+        record.setPercentage(50.0);
+        record.setSubmittedAt(2000L);
+
+        ReadingPracticeRecord savedRecord =
+                readingPracticeRecordRepository.save(record);
+
+
+        // -----------------------------
+        // 3. 创建第一道历史答案
+        // -----------------------------
+        ReadingPracticeAnswer firstAnswer =
+                new ReadingPracticeAnswer();
+
+        firstAnswer.setPracticeRecord(savedRecord);
+        firstAnswer.setQuestionId(101L);
+        firstAnswer.setQuestionNumber(1);
+        firstAnswer.setUserAnswer("FALSE");
+        firstAnswer.setCorrectAnswer("TRUE");
+        firstAnswer.setCorrect(false);
+
+        readingPracticeAnswerRepository.save(firstAnswer);
+
+
+        // -----------------------------
+        // 4. 创建第二道历史答案
+        // -----------------------------
+        ReadingPracticeAnswer secondAnswer =
+                new ReadingPracticeAnswer();
+
+        secondAnswer.setPracticeRecord(savedRecord);
+        secondAnswer.setQuestionId(102L);
+        secondAnswer.setQuestionNumber(2);
+        secondAnswer.setUserAnswer("D");
+        secondAnswer.setCorrectAnswer("D");
+        secondAnswer.setCorrect(true);
+
+        readingPracticeAnswerRepository.save(secondAnswer);
+
+
+        // -----------------------------
+        // Act + Assert
+        // -----------------------------
+        mockMvc.perform(
+                        get(
+                                "/api/reading/practice-history/{id}",
+                                savedRecord.getId()
+                        )
+                )
+                .andExpect(status().isOk())
+
+                // Practice 基本信息
+                .andExpect(
+                        jsonPath("$.id")
+                                .value(savedRecord.getId())
+                )
+
+                .andExpect(
+                        jsonPath("$.testId")
+                                .value(savedTest.getId())
+                )
+
+                .andExpect(
+                        jsonPath("$.testTitle")
+                                .value("History Detail Test")
+                )
+
+                .andExpect(
+                        jsonPath("$.correctCount")
+                                .value(1)
+                )
+
+                .andExpect(
+                        jsonPath("$.totalQuestions")
+                                .value(2)
+                )
+
+                .andExpect(
+                        jsonPath("$.percentage")
+                                .value(50.0)
+                )
+
+                // 第一题
+                .andExpect(
+                        jsonPath("$.answers[0].questionNumber")
+                                .value(1)
+                )
+
+                .andExpect(
+                        jsonPath("$.answers[0].userAnswer")
+                                .value("FALSE")
+                )
+
+                .andExpect(
+                        jsonPath("$.answers[0].correctAnswer")
+                                .value("TRUE")
+                )
+
+                .andExpect(
+                        jsonPath("$.answers[0].correct")
+                                .value(false)
+                )
+
+                // 第二题
+                .andExpect(
+                        jsonPath("$.answers[1].questionNumber")
+                                .value(2)
+                )
+
+                .andExpect(
+                        jsonPath("$.answers[1].userAnswer")
+                                .value("D")
+                )
+
+                .andExpect(
+                        jsonPath("$.answers[1].correctAnswer")
+                                .value("D")
+                )
+
+                .andExpect(
+                        jsonPath("$.answers[1].correct")
+                                .value(true)
                 );
     }
 }
