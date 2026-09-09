@@ -4,6 +4,7 @@ import HomeView from '../views/HomeView.vue'
 import ReadingPracticeHistoryView from '@/views/ReadingPracticeHistoryView.vue'
 import ReadingHistoryDetailView from '@/views/ReadingHistoryDetailView.vue'
 import VocabularyView from '@/views/VocabularyView.vue'
+import VocabularyPracticeView from '@/views/VocabularyPracticeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -88,6 +89,17 @@ const router = createRouter({
       path: '/vocabulary',
       name: 'vocabulary',
       component: VocabularyView,
+    },
+
+    {
+      /**
+       * Vocabulary Practice 页面。
+       *
+       * 用于实际进行单词复习。
+       */
+      path: '/vocabulary/practice',
+      name: 'vocabulary-practice',
+      component: VocabularyPracticeView,
     },
   ],
 })
