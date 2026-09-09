@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.duorou.ieltsbackend.reading.exception.ReadingTestNotFoundException;
 import com.duorou.ieltsbackend.vocabulary.exception.DuplicateVocabularyWordException;
+import com.duorou.ieltsbackend.vocabulary.exception.VocabularyWordNotFoundException;
 
 import java.util.Map;
 
@@ -74,6 +75,25 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(body);
+    }
+
+    /**
+     * 当查询不到 Vocabulary Word 时，
+     * 返回 HTTP 404 Not Found。
+     */
+    @ExceptionHandler(VocabularyWordNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleVocabularyWordNotFoundException(
+            VocabularyWordNotFoundException exception
+    ) {
+
+        Map<String, String> body = Map.of(
+                "message",
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
                 .body(body);
     }
 }

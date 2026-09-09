@@ -213,4 +213,25 @@ class VocabularyWordControllerTest {
                 );
     }
 
+    /**
+     * 测试查询不存在的 Vocabulary Word。
+     *
+     * 期望：
+     *
+     * GET /api/vocabulary/words/999999
+     *
+     * 返回 HTTP 404。
+     */
+    @Test
+    void shouldReturn404WhenVocabularyWordDoesNotExist() throws Exception {
+
+        mockMvc.perform(
+                        get("/api/vocabulary/words/{id}", 999999L)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Vocabulary word not found: 999999")
+                );
+    }
 }
