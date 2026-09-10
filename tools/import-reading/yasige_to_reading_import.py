@@ -219,8 +219,7 @@ def build_questions(group):
             "questionType": question_type,
             "questionText": question_text,
 
-            # 当前这一道题自己的独立选项。
-            # 非选择题通常就是空数组。
+            # 当前这道题自己的独立选项。
             "options": question_options,
 
             "correctAnswer": normalize_answer(
@@ -228,7 +227,28 @@ def build_questions(group):
                 question_type
             ),
 
+            # 题目解析。
             "explanation": answer_item.get("explain"),
+
+            # 原文答案定位 / 高亮信息。
+            #
+            # 后续数据链路：
+            #
+            # articleSourceHighlight
+            #   ↓
+            # ReadingQuestionImportDto.answerHighlight
+            #   ↓
+            # ReadingImportService
+            #   ↓
+            # reading_question.answer_highlight_json
+            #
+            # 前端后续可以利用这些数据实现：
+            # - 答案句高亮
+            # - 原文定位
+            # - Review 页面跳到对应位置
+            "answerHighlight": answer_item.get(
+                "articleSourceHighlight"
+            ),
         })
 
     return result
