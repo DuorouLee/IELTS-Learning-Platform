@@ -119,6 +119,19 @@ public class ReadingQuestion {
     @Column(name = "options_json", columnDefinition = "TEXT")
     private String optionsJson;
 
+    /**
+     * 当前题目对应的原文高亮信息。
+     *
+     * 保存为 JSON 字符串。
+     *
+     * 后续前端可以利用这些数据实现：
+     * - 答案句高亮
+     * - 原文定位
+     * - Review 时跳转到对应段落
+     */
+    @Column(name = "answer_highlight_json", columnDefinition = "TEXT")
+    private String answerHighlightJson;
+
     public ReadingQuestion() {
     }
 
@@ -204,6 +217,14 @@ public class ReadingQuestion {
      */
     public void setOptionsJson(String optionsJson) {
         this.optionsJson = optionsJson;
+    }
+
+    public String getAnswerHighlightJson() {
+        return answerHighlightJson;
+    }
+
+    public void setAnswerHighlightJson(String answerHighlightJson) {
+        this.answerHighlightJson = answerHighlightJson;
     }
 
 }

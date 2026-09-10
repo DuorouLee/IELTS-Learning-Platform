@@ -362,6 +362,28 @@ public class ReadingImportService {
                             }
 
                             /**
+                             * 保存当前题目的原文高亮信息。
+                             *
+                             * DTO 中是 Object，
+                             * 这里统一序列化成 JSON 字符串保存到数据库。
+                             */
+                            if (questionDto.getAnswerHighlight() != null) {
+                                try {
+                                    question.setAnswerHighlightJson(
+                                            objectMapper.writeValueAsString(
+                                                    questionDto.getAnswerHighlight()
+                                            )
+                                    );
+                                } catch (IOException e) {
+                                    throw new IllegalStateException(
+                                            "Failed to serialize answer highlight for question: "
+                                                    + questionDto.getQuestionNumber(),
+                                            e
+                                    );
+                                }
+                            }
+
+                            /**
                              * 旧关系：
                              * Question 仍然属于 Passage。
                              */

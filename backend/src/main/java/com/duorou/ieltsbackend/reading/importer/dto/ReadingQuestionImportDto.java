@@ -138,4 +138,17 @@ public class ReadingQuestionImportDto {
     public void setOptions(List<String> options) {
         this.options = options;
     }
+
+    /**
+     * 当前题目对应的原文高亮 JSON。
+     */
+    private Object answerHighlight;
+
+    public Object getAnswerHighlight() {
+        return answerHighlight;
+    }
+
+    public void setAnswerHighlight(Object answerHighlight) {
+        this.answerHighlight = answerHighlight;
+    }
 }
