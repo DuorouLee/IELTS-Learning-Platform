@@ -43,6 +43,15 @@ const currentPassageIndex = ref(0)
  */
 const translationVisible = ref<Record<number, boolean>>({})
 
+/**
+ * 当前在左侧原文中高亮的文本片段。
+ *
+ * 用户点击某道题的“定位原文”后，
+ * 会从 answerHighlightJson 中提取真实答案句，
+ * 然后把这些句子高亮显示。
+ */
+const highlightedArticleFragments = ref<string[]>([])
+
 const currentTestId = computed(() => Number(route.params.testId))
 
 const storageKey = computed(() => {
@@ -115,6 +124,254 @@ function htmlToReadableText(htmlText: string | null) {
   )
 }
 
+
+/**
+ * 转义 HTML 特殊字符。
+ *
+ * 因为下面需要通过 v-html 显示“带 <mark> 的文章”，
+ * 所以先把普通文章文字进行转义，
+ * 防止文章本身被当成 HTML 执行。
+ */
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+/**
+ * 判断一个字符串是不是 UUID。
+ *
+ * answerHighlightJson 中有些字段的 text / id
+ * 保存的是内部 UUID，而不是文章句子。
+ * 这种值不应该拿来做原文定位。
+ */
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  )
+}
+
+/**
+ * 从 answerHighlightJson 中递归收集可能的文章文本。
+ *
+ * 数据里不同题目的结构并不完全统一：
+ * 有时真正文章句子在 id，
+ * 有时在 text，
+ * 还有时直接作为对象的 key。
+ *
+ * 所以这里不写死某一个字段，而是把可能的长文本都收集出来，
+ * 最后再用“是否真的出现在当前文章中”进行过滤。
+ */
+function collectHighlightCandidates(
+  value: unknown,
+  result: string[],
+) {
+  if (typeof value === 'string') {
+    const candidate = value
+      .replace(/\u00a0/g, ' ')
+      .trim()
+
+    if (
+      candidate.length >= 15 &&
+      !isUuid(candidate)
+    ) {
+      result.push(candidate)
+    }
+
+    return
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => {
+      collectHighlightCandidates(
+        item,
+        result,
+      )
+    })
+
+    return
+  }
+
+  if (
+    value !== null &&
+    typeof value === 'object'
+  ) {
+    Object.entries(
+      value as Record<string, unknown>,
+    ).forEach(([key, nestedValue]) => {
+      const cleanKey = key
+        .replace(/\u00a0/g, ' ')
+        .trim()
+
+      if (
+        cleanKey.length >= 15 &&
+        !isUuid(cleanKey)
+      ) {
+        result.push(cleanKey)
+      }
+
+      collectHighlightCandidates(
+        nestedValue,
+        result,
+      )
+    })
+  }
+}
+
+/**
+ * 从一道题的 answerHighlightJson 中，
+ * 找出“确实存在于当前文章正文”的文本片段。
+ */
+function getQuestionHighlightFragments(
+  answerHighlightJson: string | null | undefined,
+) {
+  if (
+    !answerHighlightJson ||
+    !currentPassage.value
+  ) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(
+      answerHighlightJson,
+    )
+
+    const candidates: string[] = []
+
+    collectHighlightCandidates(
+      parsed,
+      candidates,
+    )
+
+    const articleText = htmlToReadableText(
+      currentPassage.value.content,
+    )
+
+    const uniqueCandidates = [
+      ...new Set(candidates),
+    ]
+
+    return uniqueCandidates
+      .filter((candidate) => {
+        return articleText.includes(
+          candidate,
+        )
+      })
+      .sort(
+        (a, b) => b.length - a.length,
+      )
+  } catch {
+    return []
+  }
+}
+
+/**
+ * 当前左侧文章的 HTML。
+ *
+ * 平时只是安全转义后的普通文字；
+ * 点击“定位原文”后，
+ * 会把命中的答案句包成 <mark>。
+ */
+const highlightedArticleHtml = computed(() => {
+  if (!currentPassage.value) {
+    return ''
+  }
+
+  let articleText = htmlToReadableText(
+    currentPassage.value.content,
+  )
+
+  if (
+    highlightedArticleFragments.value.length ===
+    0
+  ) {
+    return escapeHtml(articleText)
+  }
+
+  const placeholders = new Map<
+    string,
+    string
+  >()
+
+  highlightedArticleFragments.value.forEach(
+    (fragment, index) => {
+      if (!articleText.includes(fragment)) {
+        return
+      }
+
+      const placeholder =
+        `__READING_HIGHLIGHT_${index}__`
+
+      placeholders.set(
+        placeholder,
+        fragment,
+      )
+
+      articleText = articleText.replace(
+        fragment,
+        placeholder,
+      )
+    },
+  )
+
+  let safeHtml = escapeHtml(
+    articleText,
+  )
+
+  placeholders.forEach(
+    (fragment, placeholder) => {
+      safeHtml = safeHtml.replace(
+        placeholder,
+        `<mark class="answer-highlight">${escapeHtml(fragment)}</mark>`,
+      )
+    },
+  )
+
+  return safeHtml
+})
+
+/**
+ * 点击 Review 中的“定位原文”：
+ *
+ * 1. 确保左侧显示英文原文；
+ * 2. 读取该题 answerHighlightJson；
+ * 3. 找到可以在文章中精确匹配的句子；
+ * 4. 高亮；
+ * 5. 自动滚动到高亮位置。
+ */
+async function locateQuestionInArticle(
+  answerHighlightJson: string | null | undefined,
+) {
+  if (!currentPassage.value) {
+    return
+  }
+
+  translationVisible.value[
+    currentPassage.value.id
+  ] = false
+
+  highlightedArticleFragments.value =
+    getQuestionHighlightFragments(
+      answerHighlightJson,
+    )
+
+  await nextTick()
+
+  const highlightElement =
+    document.querySelector(
+      '.answer-highlight',
+    )
+
+  highlightElement?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+  })
+}
+
 function toggleTranslation(passageId: number) {
   translationVisible.value[passageId] =
     !translationVisible.value[passageId]
@@ -133,6 +390,9 @@ function switchPassage(index: number) {
   }
 
   currentPassageIndex.value = index
+
+  // 切换 Passage 后清除上一段文章的答案高亮。
+  highlightedArticleFragments.value = []
 }
 
 /**
@@ -157,6 +417,7 @@ async function goToQuestion(
   questionNumber: number,
 ) {
   currentPassageIndex.value = passageIndex
+  highlightedArticleFragments.value = []
 
   await nextTick()
 
@@ -185,6 +446,7 @@ async function loadReadingTest() {
 
     currentPassageIndex.value = 0
     translationVisible.value = {}
+    highlightedArticleFragments.value = []
 
     const savedAnswers = localStorage.getItem(
       storageKey.value,
@@ -382,17 +644,15 @@ watch(
                 {{ formatPassageTitle(currentPassage.title) }}
               </h3>
 
-              <p v-if="
-                !translationVisible[
-                currentPassage.id
-                ]
-              " class="article-paragraph article-readable-text">
-                {{
-                  htmlToReadableText(
-                    currentPassage.content,
-                  )
-                }}
-              </p>
+              <p
+                v-if="
+                  !translationVisible[
+                    currentPassage.id
+                  ]
+                "
+                class="article-paragraph article-readable-text"
+                v-html="highlightedArticleHtml"
+              ></p>
 
               <p v-else class="article-paragraph translation-paragraph">
                 {{
@@ -631,7 +891,22 @@ watch(
                     v-if="question.explanation"
                     class="review-explanation"
                   >
-                    <strong>Explanation</strong>
+                    <div class="explanation-heading">
+                      <strong>Explanation</strong>
+
+                      <button
+                        v-if="question.answerHighlightJson"
+                        type="button"
+                        class="locate-button"
+                        @click="
+                          locateQuestionInArticle(
+                            question.answerHighlightJson,
+                          )
+                        "
+                      >
+                        定位原文
+                      </button>
+                    </div>
 
                     <p>
                       {{
@@ -1001,6 +1276,39 @@ questionNumber in
   margin: 6px 0 0;
   white-space: pre-wrap;
   line-height: 1.75;
+}
+
+.explanation-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.locate-button {
+  padding: 5px 10px;
+  border: 1px solid #b9d3e6;
+  border-radius: 6px;
+  background: #eef7ff;
+  color: #35586f;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.locate-button:hover {
+  background: #e1f1ff;
+}
+
+/**
+ * answer-highlight 是通过 v-html 动态插入的，
+ * scoped CSS 默认不会直接作用到它，
+ * 所以这里使用 :deep()。
+ */
+.article-readable-text :deep(.answer-highlight) {
+  padding: 2px 3px;
+  border-radius: 4px;
+  background: #fff1a8;
+  box-shadow: 0 0 0 2px rgba(245, 205, 80, 0.18);
 }
 
 .part-navigator {
