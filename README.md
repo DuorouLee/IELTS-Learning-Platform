@@ -1,282 +1,154 @@
 # IELTS Learning Platform
 
-A full-stack IELTS learning platform built with **Java, Spring Boot, Vue 3 and SQLite**.
+A full-stack IELTS learning platform built with Java, Spring Boot, Vue 3 and SQLite.
 
-本项目既是一个实际可使用的 IELTS 学习工具，也是一个用于展示 **Java Web / Spring Boot 全栈开发能力** 的个人项目。
+这是一个用于 IELTS 学习与 Java Web 开发实践的个人项目。
 
-目前已经完成两个核心学习模块：
-
-- ✅ IELTS Reading
-- ✅ Vocabulary Learning
-
-Reading 已形成从题库导入、答题、后端判分、Review 到 Practice History 的完整学习闭环。
-
-Vocabulary 已形成从单词管理、学习状态、Vocabulary Practice 到基础学习统计的第一版学习闭环。
-
-项目仍在持续开发中，下一阶段将扩展：
-
-- Writing
-- Learning Analytics
-- Desktop Integration
-- AI-assisted Learning
+项目当前重点围绕 Reading 和 Vocabulary 两个模块，目标是构建一个具备真实学习流程、后端业务逻辑、数据持久化和学习记录能力的 IELTS 学习平台。
 
 ---
 
-# ✨ Project Goals
+## 1. Product Overview
 
-本项目主要有两个目标。
+IELTS Learning Platform 主要解决两类需求：
 
-## 1. Java 后端求职项目
+1. 提供可持续使用的 IELTS 学习工具
+2. 作为 Java / Spring Boot 求职项目展示完整 Web 开发能力
 
-通过实际业务功能练习和展示：
+当前已实现：
+
+- IELTS Reading Practice
+- Reading 题库导入
+- Reading 后端判分
+- Reading 答案 Review
+- Reading Practice History
+- Vocabulary Management
+- Vocabulary Practice
+- Vocabulary Learning Status
+
+当前主要开发方向：
+
+- Reading 机考体验优化
+- Reading 解析与原文定位
+- Reading 学习数据分析
+- Vocabulary 学习体验优化
+
+---
+
+## 2. Tech Stack
+
+### Backend
 
 - Java
 - Spring Boot
-- REST API
-- Spring Data JPA
-- Hibernate
-- SQLite
-- Flyway
-- 分层架构
-- Exception Handling
-- Automated Testing
-- 前后端分离
-- Git / GitHub 开发流程
-
-项目后端保持统一架构：
-
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-Spring Data JPA / Hibernate
-    ↓
-SQLite
-```
-
-业务规则主要放在 Service 层，Controller 负责 HTTP 接口，Repository 负责数据库访问。
-
----
-
-## 2. IELTS Learning Tool
-
-平台同时用于实际 IELTS 学习，目前主要覆盖：
-
-```text
-Reading
-Vocabulary
-Writing (planned)
-```
-
-未来会逐步加入：
-
-```text
-Learning History
-Statistics
-Learning Analytics
-AI Feedback
-Writing Assistance
-```
-
----
-
-# 🛠 Tech Stack
-
-## Backend
-
-- Java 25
-- Spring Boot 4
 - Spring Web MVC
 - Spring Data JPA
 - Hibernate
-- Flyway
 - SQLite
+- Flyway
 - Maven
 - Jackson
 - Bean Validation
-- REST API
 - JUnit
 - MockMvc
 
-主要后端调用链：
-
-```text
-HTTP Request
-     ↓
-Controller
-     ↓
-Service
-     ↓
-Repository
-     ↓
-JPA / Hibernate
-     ↓
-SQLite
-```
-
----
-
-## Frontend
+### Frontend
 
 - Vue 3
 - TypeScript
 - Vite
 - Vue Router
-- Fetch API
-- Browser Local Storage
+- REST API
 
-Vue 主要负责：
-
-- 页面展示
-- 用户交互
-- 前端状态管理
-- Reading 草稿保存
-- REST API 调用
-- Practice 页面交互
-
----
-
-## Database
+### Database
 
 - SQLite
 - Flyway Migration
 
-所有数据库 Schema 变更通过 Flyway 管理：
+### Version Control
+
+- Git
+- GitHub
+
+---
+
+## 3. System Architecture
+
+项目采用前后端分离架构：
 
 ```text
-V1__...
-V2__...
-V3__...
-...
+Vue 3
+  ↓
+REST API
+  ↓
+Spring Boot
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Repository
+  ↓
+JPA / Hibernate
+  ↓
+SQLite
 ```
 
-数据库结构不依赖开发者手动修改 SQLite 文件。
+核心业务规则主要由 Spring Boot Service 层负责。
+
+Vue 前端主要负责：
+
+- 页面展示
+- 用户交互
+- 答题状态
+- API 调用
+- 学习结果展示
+
+数据库 Schema 统一通过 Flyway 管理。
 
 ---
 
-## Desktop
+## 4. IELTS Reading
 
-计划使用：
-
-- Tauri
-
-桌面端不会重新实现 IELTS 核心业务逻辑，而是尽量复用：
-
-```text
-Vue Frontend
-+
-Spring Boot Backend
-```
-
----
-
-## AI Runtime
-
-计划使用独立 AI Runtime：
-
-- Python
-
-未来可能用于：
-
-- IELTS Writing Feedback
-- Writing 辅助评分
-- 错题分析
-- 学习建议生成
-- 个性化学习辅助
-
-AI 模块目前仍属于后续开发阶段。
-
----
-
-# 🏗 System Architecture
-
-当前核心架构：
-
-```text
-┌─────────────────────────────┐
-│          Vue 3              │
-│     TypeScript + Vite       │
-│                             │
-│ Reading / Vocabulary UI     │
-└──────────────┬──────────────┘
-               │
-               │ REST API
-               ▼
-┌─────────────────────────────┐
-│        Spring Boot          │
-│                             │
-│ Controller                  │
-│      ↓                      │
-│ Service                     │
-│      ↓                      │
-│ Repository                  │
-│      ↓                      │
-│ Entity / Domain             │
-└──────────────┬──────────────┘
-               │
-               │ JPA / Hibernate
-               ▼
-┌─────────────────────────────┐
-│          SQLite             │
-│                             │
-│ Flyway Migration            │
-└─────────────────────────────┘
-```
-
-核心 IELTS 业务逻辑统一由 Spring Boot 管理。
-
----
-
-# 📚 Current Features
-
-# 1. IELTS Reading
-
-Reading 是目前项目中功能最完整的模块。
+Reading 是目前项目的核心模块。
 
 完整学习流程：
 
 ```text
 Reading Test
-     ↓
-Load Passage / Questions
-     ↓
+    ↓
+Load Passage & Questions
+    ↓
 Answer Questions
-     ↓
-Local Draft Persistence
-     ↓
-Submit Answers
-     ↓
+    ↓
+Submit
+    ↓
 Server-side Evaluation
-     ↓
+    ↓
 Result
-     ↓
-Question Review
-     ↓
+    ↓
+Review
+    ↓
 Practice History
-     ↓
-History Detail / Statistics
 ```
 
----
+### 4.1 Reading Data Model
 
-## Reading Data Model
-
-Reading 核心数据模型包括：
+核心数据结构：
 
 ```text
 ReadingTest
     │
-    ├── ReadingPassage
-    │
-    ├── ReadingQuestionGroup
-    │
-    └── ReadingQuestion
+    └── ReadingPassage
+            │
+            └── QuestionGroup
+                    │
+                    ├── QuestionOption
+                    │
+                    └── ReadingQuestion
 ```
 
-同时包含练习记录：
+练习记录：
 
 ```text
 ReadingPracticeRecord
@@ -284,346 +156,185 @@ ReadingPracticeRecord
         └── ReadingPracticeAnswer
 ```
 
-这样既可以保存：
+其中：
 
-- 一次练习整体结果
-- 每一道题的历史答案
+- `ReadingTest`：一套完整 Reading Test
+- `ReadingPassage`：Reading Passage 1 / 2 / 3
+- `QuestionGroup`：Questions 1–7、Questions 14–17 等题组
+- `QuestionOption`：Matching 等题型共享选项
+- `ReadingQuestion`：单道题目、答案、解析及独立选项
 
----
+### 4.2 Reading Question Types
 
-## IELTS Reading JSON Import
+Reading 数据模型支持不同题型采用不同结构。
 
-项目已经支持 IELTS Reading JSON 数据导入。
+#### Multiple Choice
 
-数据流：
+每一道题可以拥有独立选项：
 
 ```text
-External IELTS JSON
+Question 27
+├── A
+├── B
+├── C
+└── D
+```
+
+#### Matching
+
+整个 Question Group 可以共享一组选项：
+
+```text
+Questions 14–17
+
+A
+B
+C
+D
+E
+F
+G
+```
+
+这种设计用于适配不同 IELTS Reading 题型，而不是把所有题目强制存成同一种结构。
+
+### 4.3 Reading Data Import
+
+项目支持将外部 Reading JSON 转换为平台内部统一格式。
+
+```text
+External Reading Data
         ↓
-Reading Importer
+Converter
         ↓
-Internal Reading Model
+Reading Import JSON
         ↓
-Spring Data JPA
+ReadingImportService
+        ↓
+Reading Domain Model
         ↓
 SQLite
 ```
 
-这样可以把：
+外部数据格式与平台内部业务模型相互解耦，题库数据统一转换后，再由 Spring Boot 负责保存。
+
+### 4.4 Reading Practice
+
+Reading Practice 页面采用 Passage 与 Questions 双栏结构：
 
 ```text
-外部 IELTS 数据格式
+┌──────────────────────┬──────────────────────┐
+│                      │                      │
+│       Passage        │      Questions       │
+│                      │                      │
+│      阅读文章          │       答题区域        │
+│                      │                      │
+└──────────────────────┴──────────────────────┘
 ```
 
-与：
+当前练习流程支持：
+
+- Passage 阅读
+- Question Group 展示
+- 用户答题
+- 未完成答案暂存
+- 提交答案
+- 后端判分
+- 查看正确答案
+- 查看错题
+- Practice History
+
+### 4.5 Answer Evaluation
+
+Reading 判分由 Spring Boot 后端完成。
 
 ```text
-平台内部业务模型
-```
-
-解耦。
-
----
-
-## Reading Full Test API
-
-获取完整 Reading Test：
-
-```http
-GET /api/reading/tests/{id}/full
-```
-
-返回内容包含：
-
-- Reading Test
-- Passages
-- Question Groups
-- Questions
-
-为了防止答案提前泄露：
-
-```text
-correctAnswer
-```
-
-不会在 `/full` API 中返回。
-
----
-
-## Reading Practice Page
-
-Vue 前端实现了 IELTS Reading 双栏答题界面：
-
-```text
-┌──────────────────────────┬──────────────────────────┐
-│                          │                          │
-│        Passage           │        Questions         │
-│                          │                          │
-│        阅读文章           │         答题区域          │
-│                          │                          │
-└──────────────────────────┴──────────────────────────┘
-```
-
-用户可以同时阅读 Passage 并完成对应 Questions。
-
----
-
-## Local Draft Persistence
-
-未提交的 Reading 答案会暂存在：
-
-```text
-localStorage
-```
-
-因此：
-
-```text
-答题
- ↓
-刷新页面
- ↓
-恢复未完成答案
-```
-
-从 Home 页面主动开始一次新 Practice 时，则会清除对应旧草稿：
-
-```text
-Start New Practice
-       ↓
-Clear Old Draft
-       ↓
-Reading Test
-       ↓
-0 Answered
-```
-
-从而区分：
-
-- 刷新页面 → 恢复草稿
-- 新开始练习 → 清空草稿
-
----
-
-## Reading Submission
-
-用户完成 Reading 后调用：
-
-```http
-POST /api/reading/tests/{id}/submit
-```
-
-数据流：
-
-```text
-Vue
- │
- │ User Answers
- ▼
-Spring Boot
- │
- │ Server-side Evaluation
- ▼
+User Answer
+    ↓
+Reading Service
+    ↓
+Correct Answer
+    ↓
+Evaluation
+    ↓
 Result
 ```
 
-判分逻辑由后端完成。
+提交后返回：
+
+- Correct / Incorrect
+- Correct Answer
+- Correct Count
+- Total Questions
+- Accuracy
+
+### 4.6 Reading Review
+
+完成练习后可以查看：
+
+- 用户答案
+- 正确答案
+- 是否答对
+- Question Explanation
+
+Reading 数据模型也为后续功能保留扩展空间：
+
+- Passage Translation
+- Answer Source Highlight
+- Original Text Highlight
+- Question-specific Review
+
+### 4.7 Reading Practice History
+
+每次提交后都会保存练习记录，包括：
+
+- Test
+- Score
+- Correct Count
+- Total Questions
+- Accuracy
+- Submitted Time
+- 每道题的用户答案
+
+用户可以重新进入历史记录查看某一次完整练习结果。
 
 ---
 
-## Server-side Evaluation
+## 5. Vocabulary
 
-Spring Boot 根据：
-
-```text
-User Answer
-     ↓
-Correct Answer
-     ↓
-Evaluation
-```
-
-生成：
-
-- correct
-- correctAnswer
-- correctCount
-- totalQuestions
-- percentage
-
-正确答案只有提交以后才会返回给浏览器。
-
----
-
-## Reading Result & Review
-
-提交以后可以查看：
+Vocabulary 模块目前已经完成基础学习闭环：
 
 ```text
-Score
-Accuracy
-Question Result
-User Answer
-Correct Answer
-```
-
-例如：
-
-```text
-Question 1
-
-Your Answer:
-FALSE
-
-Correct Answer:
-TRUE
-
-Result:
-Incorrect
-```
-
----
-
-# 📊 Reading Practice History
-
-每次 Reading 提交后都会保存 Practice Record。
-
-包括：
-
-```text
-id
-testId
-testTitle
-correctCount
-totalQuestions
-percentage
-submittedAt
-```
-
-同时每道题的历史答案保存到：
-
-```text
-ReadingPracticeAnswer
-```
-
-因此 History Detail 可以恢复某一次练习的逐题情况。
-
----
-
-## Reading Practice History API
-
-获取历史记录：
-
-```http
-GET /api/reading/practice-history
-```
-
-获取单次历史详情：
-
-```http
-GET /api/reading/practice-history/{id}
-```
-
-删除练习记录：
-
-```http
-DELETE /api/reading/practice-history/{id}
-```
-
----
-
-## Reading Practice Statistics
-
-History 页面目前支持基础统计：
-
-```text
-Practice Count
-Average Accuracy
-Best Accuracy
-```
-
-用于快速查看 Reading 学习情况。
-
----
-
-# 🔐 Answer Protection
-
-Reading 模块专门处理了正确答案提前泄露的问题。
-
-## Before Submit
-
-调用：
-
-```http
-GET /api/reading/tests/{id}/full
-```
-
-时不会返回：
-
-```text
-correctAnswer
-```
-
-## After Submit
-
-只有调用：
-
-```http
-POST /api/reading/tests/{id}/submit
-```
-
-完成提交以后，后端才返回：
-
-```text
-correctAnswer
-correct
-```
-
-因此：
-
-```text
-Correct Answer
-+
-Evaluation Rule
-```
-
-由服务器端控制。
-
----
-
-# 🧠 Vocabulary Learning
-
-Vocabulary 已经完成第一版学习闭环。
-
-整体流程：
-
-```text
-Add Vocabulary Word
-        ↓
-SQLite Persistence
-        ↓
+Add Word
+    ↓
 LEARNING
-        ↓
+    ↓
 Vocabulary Practice
-        ↓
+    ↓
 Recall Meaning
-        ↓
+    ↓
 Show Answer
-        ↓
+    ↓
 Still Learning / I Know
-        ↓
+    ↓
 LEARNING / MASTERED
 ```
 
----
+当前支持：
 
-## Vocabulary Data Model
+- 添加单词
+- 删除单词
+- 单词释义
+- Example Sentence
+- Learning Status
+- Vocabulary Practice
+- Learning / Mastered 状态切换
+- 基础数量统计
 
 核心实体：
 
 ```text
 VocabularyWord
-├── id
 ├── word
 ├── meaning
 ├── exampleSentence
@@ -631,238 +342,57 @@ VocabularyWord
 └── createdAt
 ```
 
-当前支持两个学习状态：
-
-```text
-LEARNING
-MASTERED
-```
-
-新创建的单词默认：
-
-```text
-LEARNING
-```
-
 ---
 
-## Vocabulary REST API
+## 6. Backend Design
 
-当前实现：
-
-```http
-GET    /api/vocabulary/words
-GET    /api/vocabulary/words/{id}
-POST   /api/vocabulary/words
-DELETE /api/vocabulary/words/{id}
-PUT    /api/vocabulary/words/{id}/status
-```
-
-支持：
-
-- 获取全部单词
-- 根据 ID 查询单词
-- 添加单词
-- 删除单词
-- 更新学习状态
-- 重复单词校验
-- 不存在单词的 404 处理
-- 非法学习状态的 400 处理
-
----
-
-## Vocabulary Business Rules
-
-### Duplicate Word Protection
-
-创建单词前：
+Spring Boot 后端按照典型分层架构组织：
 
 ```text
-POST Vocabulary Word
-        ↓
+Controller
+    ↓
 Service
-        ↓
-existsByWord()
-        ↓
-Exists?
- ┌──────┴──────┐
-Yes            No
- ↓              ↓
-400            save()
+    ↓
+Repository
+    ↓
+Database
 ```
 
-重复单词不会直接依赖数据库 UNIQUE 异常，而是由 Service 层主动进行业务校验。
+### Controller
+
+负责：
+
+- HTTP Request
+- Request Parameter
+- Response
+
+### Service
+
+负责：
+
+- 业务规则
+- 数据转换
+- 判分
+- 状态校验
+- 导入逻辑
+
+### Repository
+
+负责：
+
+- 数据库访问
+- Spring Data JPA
+
+### Entity
+
+负责：
+
+- Domain Model
+- Database Mapping
 
 ---
 
-## Learning Status Validation
-
-当前只允许：
-
-```text
-LEARNING
-MASTERED
-```
-
-即使绕过 Vue 前端直接调用 REST API：
-
-```json
-{
-  "learningStatus": "INVALID"
-}
-```
-
-后端 Service 仍会进行业务校验并拒绝非法状态。
-
-这保证业务规则不是只存在于前端。
-
----
-
-## Vocabulary Frontend
-
-Vocabulary 页面目前支持：
-
-- Vocabulary Word 列表
-- Add Word
-- Delete Word
-- Meaning
-- Example Sentence
-- Learning Status
-- Mark as Mastered
-- Mark as Learning
-- Total / Learning / Mastered statistics
-- Vocabulary Practice 入口
-
----
-
-## Vocabulary Practice
-
-Practice 页面主要采用主动回忆：
-
-```text
-English Word
-      ↓
-Recall Meaning
-      ↓
-Show Answer
-      ↓
-Meaning + Example
-      ↓
-Choose Learning Result
-```
-
-用户可以选择：
-
-```text
-Still Learning
-      ↓
-LEARNING
-```
-
-或者：
-
-```text
-I Know
-  ↓
-MASTERED
-```
-
-Practice 优先使用：
-
-```text
-learningStatus = LEARNING
-```
-
-的单词。
-
-已经 MASTERED 的单词不会继续出现在当前基础 Practice 列表中。
-
----
-
-## Vocabulary Statistics
-
-Vocabulary 首页可以查看：
-
-```text
-Total
-Learning
-Mastered
-```
-
-Practice 页面同时记录本轮基础完成情况。
-
----
-
-# ⚠️ Exception Handling
-
-项目提供统一：
-
-```text
-GlobalExceptionHandler
-```
-
-将业务异常转换成清晰的 HTTP Response。
-
-当前包括：
-
-```text
-ReadingTestNotFoundException
-        ↓
-404 Not Found
-
-VocabularyWordNotFoundException
-        ↓
-404 Not Found
-
-DuplicateVocabularyWordException
-        ↓
-400 Bad Request
-
-InvalidVocabularyLearningStatusException
-        ↓
-400 Bad Request
-```
-
-这样 Controller 不需要重复处理异常 Response。
-
----
-
-# 🧪 Automated Testing
-
-后端使用：
-
-- JUnit
-- Spring Boot Test
-- MockMvc
-
-测试覆盖 Reading 和 Vocabulary 的核心业务流程。
-
-Vocabulary Controller Test 当前覆盖：
-
-- Create Vocabulary Word
-- Duplicate Word
-- Get Word by ID
-- Word Not Found
-- Delete Word
-- Update Learning Status
-- Invalid Learning Status
-
-测试方式：
-
-```bash
-cd backend
-mvn test
-```
-
-目标：
-
-```text
-BUILD SUCCESS
-```
-
----
-
-# 🗄 Database Migration
+## 7. Database Migration
 
 项目使用 Flyway 管理 SQLite Schema。
 
@@ -872,7 +402,7 @@ Migration 文件位于：
 backend/src/main/resources/db/migration/
 ```
 
-所有 Schema 修改都通过：
+数据库结构通过版本化 migration 持续演进：
 
 ```text
 V1__...
@@ -881,57 +411,35 @@ V3__...
 ...
 ```
 
-形式持续演进。
-
-例如：
-
-```text
-Create Reading Tables
-        ↓
-Add Reading History
-        ↓
-Add Practice Answers
-        ↓
-Create Vocabulary Word
-        ↓
-Add Vocabulary Learning Status
-```
-
-避免直接手工修改数据库结构导致不同开发环境 Schema 不一致。
+这样可以避免手动修改数据库造成不同环境结构不一致。
 
 ---
 
-# 🌐 CORS Configuration
+## 8. Automated Testing
 
-开发环境：
+后端使用：
 
-```text
-Vue
-http://localhost:5173
+- JUnit
+- Spring Boot Test
+- MockMvc
 
-Spring Boot
-http://localhost:8080
-```
+用于测试：
 
-由于前后端端口不同，Spring Boot 通过 Web MVC CORS Configuration 允许 Vue 调用：
+- REST API
+- Service Business Logic
+- Validation
+- Error Handling
 
-```text
-/api/**
-```
+运行：
 
-包括：
-
-```text
-GET
-POST
-PUT
-DELETE
-OPTIONS
+```bash
+cd backend
+mvn test
 ```
 
 ---
 
-# 📂 Project Structure
+## 9. Project Structure
 
 ```text
 IELTS-Learning-Platform
@@ -944,20 +452,7 @@ IELTS-Learning-Platform
 │       │   │       ├── common
 │       │   │       ├── config
 │       │   │       ├── reading
-│       │   │       │   ├── controller
-│       │   │       │   ├── dto
-│       │   │       │   ├── entity
-│       │   │       │   ├── exception
-│       │   │       │   ├── importer
-│       │   │       │   ├── repository
-│       │   │       │   └── service
-│       │   │       │
 │       │   │       └── vocabulary
-│       │   │           ├── controller
-│       │   │           ├── entity
-│       │   │           ├── exception
-│       │   │           ├── repository
-│       │   │           └── service
 │       │   │
 │       │   └── resources
 │       │       └── db
@@ -968,80 +463,58 @@ IELTS-Learning-Platform
 ├── frontend
 │   └── src
 │       ├── api
+│       ├── components
 │       ├── router
 │       └── views
+│
+├── tools
+│   └── import-reading
 │
 ├── data
 ├── docs
 ├── desktop
-├── ai-runtime
-└── tools
+└── ai-runtime
 ```
 
 ---
 
-# ▶️ Running the Project
+## 10. Running the Project
 
-## 1. Start Backend
-
-进入：
+### Backend
 
 ```bash
 cd backend
-```
-
-运行：
-
-```bash
 mvn spring-boot:run
 ```
 
-默认地址：
+Default:
 
 ```text
 http://localhost:8080
 ```
 
----
-
-## 2. Start Frontend
-
-进入：
+### Frontend
 
 ```bash
 cd frontend
-```
-
-安装依赖：
-
-```bash
 npm install
-```
-
-运行：
-
-```bash
 npm run dev
 ```
 
-默认地址：
+Default:
 
 ```text
 http://localhost:5173
 ```
 
----
-
-## 3. Run Backend Tests
+### Backend Tests
 
 ```bash
 cd backend
 mvn test
 ```
 
----
-
-## 4. Build Frontend
+### Frontend Build
 
 ```bash
 cd frontend
@@ -1050,251 +523,72 @@ npm run build
 
 ---
 
-# 💡 Engineering Highlights
+## 11. Engineering Highlights
 
-这个项目重点展示的不只是页面功能，也包括后端工程实践。
+### Server-side Business Logic
 
-## Layered Architecture
+Reading 判分、Vocabulary 状态校验等核心规则由 Spring Boot 控制。
 
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-Database
-```
+### Reading Domain Modeling
 
-不同职责保持分离。
+针对 Passage、Question Group、Question、Shared Options 和 Question-specific Options 建立独立数据模型。
 
----
+### External Data Conversion
 
-## Server-side Business Logic
+外部 Reading 数据先通过 Converter 转换，再进入统一的 Reading Import Model。
 
-Reading 判分规则和 Vocabulary 状态规则由后端控制，而不是依赖 Vue。
+### Database Version Control
 
-例如：
+所有 Schema 修改通过 Flyway 管理，并与 Git 一起维护。
 
-```text
-Reading Answer Evaluation
-Vocabulary Duplicate Validation
-Vocabulary Learning Status Validation
-```
+### REST API
 
-都由 Spring Boot Service 处理。
+Vue 与 Spring Boot 通过 REST API 通信，前端不直接操作数据库。
+
+### Practice History
+
+Reading 不只是完成一次答题，还保存完整 Practice Record 和逐题答案，用于后续 Review 和学习分析。
 
 ---
 
-## Database Version Control
+## 12. Roadmap
 
-使用 Flyway：
-
-```text
-Migration as Code
-```
-
-数据库 Schema 与 Git 代码一起管理。
-
----
-
-## REST API Design
-
-项目使用 RESTful API 连接 Vue 与 Spring Boot：
+当前 Reading 的下一阶段重点：
 
 ```text
-GET
-POST
-PUT
-DELETE
-```
-
-并通过：
-
-```text
-200 OK
-204 No Content
-400 Bad Request
-404 Not Found
-```
-
-表达不同业务结果。
-
----
-
-## Global Exception Handling
-
-统一处理业务异常：
-
-```text
-Business Exception
-       ↓
-GlobalExceptionHandler
-       ↓
-HTTP Response
-```
-
-避免异常处理逻辑散落在不同 Controller 中。
-
----
-
-## Automated Testing
-
-通过 Spring Boot Test + MockMvc 自动验证 REST API 和业务行为。
-
-开发过程采用：
-
-```text
-Failing Test
-    ↓
-Implement Feature
-    ↓
-BUILD SUCCESS
-```
-
-的方式逐步补充功能。
-
----
-
-## Frontend / Backend Separation
-
-Vue 不直接操作数据库。
-
-完整数据流：
-
-```text
-Vue
- ↓
-REST API
- ↓
-Spring Boot
- ↓
-JPA / Hibernate
- ↓
-SQLite
-```
-
----
-
-# 🎯 Resume / Interview Highlights
-
-如果用于 Java 后端求职展示，本项目目前可以重点介绍：
-
-- 使用 Java + Spring Boot 构建 RESTful Web Backend
-- 采用 Controller / Service / Repository 分层架构
-- 使用 Spring Data JPA + Hibernate 实现数据库持久化
-- 使用 SQLite 作为轻量本地数据库
-- 使用 Flyway 管理数据库 Schema Migration
-- 实现 Reading 多实体业务模型与 JSON Import
-- 实现 Server-side Reading Evaluation，防止答案提前泄露
-- 实现 Reading Practice History 与逐题历史答案持久化
-- 使用 GlobalExceptionHandler 统一处理业务异常
-- 实现 Vocabulary Learning State 与 Service 层业务校验
-- 使用 JUnit + MockMvc 编写 REST API 自动化测试
-- 使用 Vue 3 + TypeScript 实现前后端分离
-- 使用 Git / GitHub 持续记录功能开发过程
-
----
-
-# 🗺 Development Roadmap
-
-当前开发路线：
-
-```text
-Reading Core
-     ✅
-      ↓
-Reading Submission / Review
-     ✅
-      ↓
-Reading Practice History
-     ✅
-      ↓
-Vocabulary Management
-     ✅
-      ↓
-Vocabulary Practice
-     ✅
-      ↓
-Writing
-     🚧
-      ↓
+Reading Practice UI
+        ↓
+Resizable Split View
+        ↓
+Question-specific Rendering
+        ↓
+Translation
+        ↓
+Answer Explanation
+        ↓
+Original Text Highlight
+        ↓
 Learning Analytics
-      ⏳
-      ↓
-Desktop Integration
-      ⏳
-      ↓
-AI-assisted Learning
-      ⏳
 ```
 
----
+计划进一步完善：
 
-# ✅ Current Status
-
-## Completed
-
-### Reading
-
-- ✅ Reading Test / Passage / Question / QuestionGroup
-- ✅ IELTS Reading JSON Import
-- ✅ Reading Full Test API
-- ✅ Dual-column Reading Practice
-- ✅ localStorage Draft Persistence
-- ✅ Server-side Evaluation
-- ✅ Result / Review
-- ✅ Answer Protection
-- ✅ Practice History
-- ✅ Practice Statistics
-- ✅ History Delete
-- ✅ History Detail
-- ✅ Per-question History Persistence
-- ✅ Automated Tests
-- ✅ Global Exception Handling
-
-### Vocabulary
-
-- ✅ VocabularyWord Persistence
-- ✅ Vocabulary REST API
-- ✅ Add Word
-- ✅ Delete Word
-- ✅ Duplicate Validation
-- ✅ Learning / Mastered Status
-- ✅ Invalid Status Validation
-- ✅ Vocabulary List Page
-- ✅ Vocabulary Statistics
-- ✅ Vocabulary Practice
-- ✅ Still Learning / I Know Workflow
-- ✅ Automated API Tests
+- 更接近 IELTS Computer-delivered Test 的 Reading UI
+- Passage / Questions 可调节双栏布局
+- 不同题型独立交互组件
+- Passage Translation
+- Answer Explanation
+- Answer Source Highlight
+- 错题分析
+- Reading Statistics
+- Learning Analytics
 
 ---
 
-## Next
+## Project Status
 
-下一阶段：
+项目处于持续开发阶段。
 
-```text
-IELTS Writing
-```
+当前重点：
 
-计划逐步实现：
-
-- Writing Task
-- User Essay
-- Writing Submission
-- Writing History
-- Feedback Model
-- 后续 AI-assisted Feedback
-
----
-
-# 📌 Project Status
-
-**Reading MVP：Completed ✅**
-
-**Vocabulary MVP：Completed ✅**
-
-**Writing：Next 🚧**
-
-项目仍在持续开发中。
+**完善 Reading 的真实题库、数据模型、答题体验和 Review 学习闭环。**
