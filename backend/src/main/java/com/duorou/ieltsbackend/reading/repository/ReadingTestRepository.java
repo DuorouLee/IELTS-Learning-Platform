@@ -3,6 +3,8 @@ package com.duorou.ieltsbackend.reading.repository;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 /**
  * ReadingTestRepository
  *
@@ -18,24 +20,42 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * 表示 ReadingTest 的主键 id 类型是 Long。
  *
  * 继承 JpaRepository 后，
- * Spring Data JPA 会自动为我们提供常用数据库操作，例如：
+ * Spring Data JPA 会自动提供：
  *
- * save()      保存数据
- * findById()  根据 id 查询
- * findAll()   查询全部
- * deleteById() 根据 id 删除
+ * save()
+ * findById()
+ * findAll()
+ * delete()
+ * deleteById()
  *
- * 这些基础 SQL 不需要我们自己写。
+ * 等常用数据库操作。
  */
 public interface ReadingTestRepository
         extends JpaRepository<ReadingTest, Long> {
+
     /**
-     * 判断某个 externalId 是否已经存在。
+     * 判断指定 externalId 的 Reading Test 是否存在。
      *
      * 例如：
-     * p1-high-01
      *
-     * Spring Data JPA 会根据方法名自动生成查询逻辑。
+     * yasige-4202607160914251713
      */
     boolean existsByExternalId(String externalId);
+
+    /**
+     * 根据 externalId 查询 Reading Test。
+     *
+     * 为什么返回 Optional？
+     *
+     * 因为数据库中可能不存在这条记录。
+     *
+     * Optional 可以让我们显式处理：
+     *
+     * 找到
+     * 或
+     * 没找到
+     *
+     * 两种情况。
+     */
+    Optional<ReadingTest> findByExternalId(String externalId);
 }

@@ -99,3 +99,6 @@ GET http://localhost:8080/api/reading/practice-history
 
 ###
 DELETE http://localhost:8080/api/reading/practice-history/1
+
+###
+GET http://localhost:8080/api/reading/tests/8/full

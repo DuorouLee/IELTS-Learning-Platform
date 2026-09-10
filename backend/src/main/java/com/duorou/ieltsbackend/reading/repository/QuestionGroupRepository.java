@@ -14,24 +14,15 @@ public interface QuestionGroupRepository
         extends JpaRepository<QuestionGroup, Long> {
 
     /**
-     * 查询某一篇 ReadingPassage 下的所有题组。
-     *
-     * 方法名中的：
-     *
-     * ReadingPassage_Id
-     *
-     * 会被 Spring Data JPA 自动解析为：
-     *
-     * QuestionGroup.readingPassage.id
-     *
-     * 也就是类似 SQL：
-     *
-     * SELECT *
-     * FROM question_group
-     * WHERE passage_id = ?
-     *
-     * @param passageId ReadingPassage 的数据库 ID
-     * @return 当前 Passage 下的所有 QuestionGroup
+     * 查询某一个 Passage 下的全部 QuestionGroup。
      */
     List<QuestionGroup> findByReadingPassage_Id(Long passageId);
+
+    /**
+     * 删除某一整套 Reading Test 下的全部 QuestionGroup。
+     *
+     * 删除 QuestionGroup 之前，
+     * 必须先删除它下面的 QuestionOption。
+     */
+    void deleteByReadingPassageReadingTestId(Long testId);
 }

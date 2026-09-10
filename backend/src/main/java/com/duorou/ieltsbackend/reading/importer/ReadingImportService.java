@@ -1,36 +1,55 @@
 package com.duorou.ieltsbackend.reading.importer;
 
+import com.duorou.ieltsbackend.reading.entity.QuestionGroup;
+import com.duorou.ieltsbackend.reading.entity.QuestionOption;
 import com.duorou.ieltsbackend.reading.entity.ReadingPassage;
 import com.duorou.ieltsbackend.reading.entity.ReadingQuestion;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
+import com.duorou.ieltsbackend.reading.importer.dto.QuestionGroupImportDto;
+import com.duorou.ieltsbackend.reading.importer.dto.QuestionOptionImportDto;
 import com.duorou.ieltsbackend.reading.importer.dto.ReadingImportDto;
 import com.duorou.ieltsbackend.reading.importer.dto.ReadingPassageImportDto;
 import com.duorou.ieltsbackend.reading.importer.dto.ReadingQuestionImportDto;
+import com.duorou.ieltsbackend.reading.repository.QuestionGroupRepository;
+import com.duorou.ieltsbackend.reading.repository.QuestionOptionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingPassageRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import com.duorou.ieltsbackend.reading.entity.QuestionGroup;
-import com.duorou.ieltsbackend.reading.entity.QuestionOption;
-
-import com.duorou.ieltsbackend.reading.importer.dto.QuestionGroupImportDto;
-import com.duorou.ieltsbackend.reading.importer.dto.QuestionOptionImportDto;
-
-import com.duorou.ieltsbackend.reading.repository.QuestionGroupRepository;
-import com.duorou.ieltsbackend.reading.repository.QuestionOptionRepository;
-
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 
 /**
  * ReadingImportService
  *
- * 负责两件事：
+ * 负责 Reading 题库 JSON 的导入。
  *
- * 1. 读取 JSON 文件
- * 2. 把 DTO 转成 Entity 并保存数据库
+ * 当前支持两种情况：
+ *
+ * 1. importReading(...)
+ *
+ *    第一次导入一整套 Reading Test。
+ *
+ *
+ * 2. reimportReadingContent(...)
+ *
+ *    开发阶段重新导入已经存在的 Reading Test 内容。
+ *
+ *    注意：
+ *    这个方法不会删除 ReadingTest 本身。
+ *
+ *    它只删除并重新建立：
+ *
+ *    ReadingPassage
+ *    QuestionGroup
+ *    QuestionOption
+ *    ReadingQuestion
+ *
+ *    这样 ReadingPracticeRecord 仍然可以继续指向
+ *    原来的 ReadingTest。
  */
 @Service
 public class ReadingImportService {
@@ -46,7 +65,8 @@ public class ReadingImportService {
     /**
      * 构造器注入。
      *
-     * Spring 会自动把这些对象传进来。
+     * Spring Boot 会自动把这些 Repository
+     * 和 ObjectMapper 注入进来。
      */
     public ReadingImportService(
             ObjectMapper objectMapper,
@@ -64,12 +84,18 @@ public class ReadingImportService {
         this.questionOptionRepository = questionOptionRepository;
     }
 
+
     /**
-     * 读取 resources/data/reading/ 下的 JSON 文件。
+     * 读取：
+     *
+     * src/main/resources/data/reading/
+     *
+     * 目录下的 JSON 文件。
      */
     public ReadingImportDto loadReadingFile(String fileName) {
 
         try {
+
             ClassPathResource resource =
                     new ClassPathResource(
                             "data/reading/" + fileName
@@ -89,67 +115,268 @@ public class ReadingImportService {
         }
     }
 
+
     /**
-     * 把一份 Reading JSON 真正导入数据库。
+     * =========================================================
+     * 第一次导入 Reading Test
+     * =========================================================
      *
-     * 数据流：
+     * 这个方法用于：
      *
-     * JSON
-     *   ↓
-     * ReadingImportDto
-     *   ↓
-     * ReadingTest
-     *   ↓
-     * ReadingPassage
-     *   ↓
-     * ReadingQuestion
-     *   ↓
-     * SQLite
+     * 数据库中还不存在这套题的时候。
+     *
+     * 如果 externalId 已经存在，
+     * 就阻止重复创建 ReadingTest。
      */
+    @Transactional
     public ReadingTest importReading(String fileName) {
 
-        // 第一步：
-        // 先把 JSON 转成 DTO。
+        // -----------------------------------------------------
+        // 1. 读取 JSON
+        // -----------------------------------------------------
+
         ReadingImportDto dto =
                 loadReadingFile(fileName);
 
-        /**
-         * 防止重复导入。
-         *
-         * 如果数据库已经存在相同 externalId，
-         * 就停止导入。
-         */
-        if (readingTestRepository.existsByExternalId(dto.getExternalId())) {
+
+        // -----------------------------------------------------
+        // 2. 防止重复导入同一个 Reading Test
+        // -----------------------------------------------------
+
+        if (readingTestRepository.existsByExternalId(
+                dto.getExternalId()
+        )) {
+
             throw new IllegalStateException(
-                    "Reading test already imported: " + dto.getExternalId()
+                    "Reading test already imported: "
+                            + dto.getExternalId()
             );
         }
 
-        // =========================
-        // 1. 创建 ReadingTest
-        // =========================
+
+        // -----------------------------------------------------
+        // 3. 创建 ReadingTest
+        // -----------------------------------------------------
 
         ReadingTest test = new ReadingTest();
 
-        test.setExternalId(dto.getExternalId());
-        test.setTitle(dto.getTitle());
-        test.setSource(dto.getSource());
+        test.setExternalId(
+                dto.getExternalId()
+        );
 
-        // 先保存 ReadingTest，
-        // 这样数据库会生成 test.id。
+        test.setTitle(
+                dto.getTitle()
+        );
+
+        test.setSource(
+                dto.getSource()
+        );
+
+
+        // save() 后数据库生成 Test ID。
         ReadingTest savedTest =
                 readingTestRepository.save(test);
 
 
-        // =========================
-        // 2. 遍历所有 Passage
-        // =========================
+        // -----------------------------------------------------
+        // 4. 保存 Test 下面的 Passage / Group / Question
+        // -----------------------------------------------------
+
+        saveReadingContent(
+                dto,
+                savedTest
+        );
+
+
+        return savedTest;
+    }
+
+
+    /**
+     * 开发阶段重新导入一套已经存在的 Reading Test。
+     *
+     * fileName：
+     * 新版本 JSON 文件名。
+     *
+     * existingExternalId：
+     * 数据库里这套 Test 目前正在使用的 externalId。
+     *
+     * 为什么需要两个值？
+     *
+     * 因为这次我们同时进行了内部命名清理：
+     *
+     * 数据库旧值
+     *     ↓
+     * existingExternalId
+     *
+     * 新 JSON
+     *     ↓
+     * reading-test-01
+     *
+     * 重导完成以后：
+     *
+     * ReadingTest 的数据库 ID 不变，
+     * 所以 ReadingPracticeRecord 仍然关联原来的 Test。
+     *
+     * 但 externalId 会更新成 JSON 中的新值。
+     */
+    @Transactional
+    public ReadingTest reimportReadingContent(
+            String fileName,
+            String existingExternalId
+    ) {
+
+        // =====================================================
+        // 1. 读取新版 Reading JSON
+        // =====================================================
+
+        ReadingImportDto dto =
+                loadReadingFile(fileName);
+
+
+        // =====================================================
+        // 2. 找到数据库里原来的 ReadingTest
+        // =====================================================
+        //
+        // 注意：
+        // 这里使用 existingExternalId，
+        // 而不是 dto.getExternalId()。
+        //
+        // 因为数据库目前还是旧 externalId。
+        // =====================================================
+
+        ReadingTest existingTest =
+                readingTestRepository
+                        .findByExternalId(
+                                existingExternalId
+                        )
+                        .orElseThrow(
+                                () -> new IllegalStateException(
+                                        "Reading test not found for reimport: "
+                                                + existingExternalId
+                                )
+                        );
+
+
+        Long testId =
+                existingTest.getId();
+
+
+        // =====================================================
+        // 3. 删除 Test 下面的旧题库内容
+        // =====================================================
+        //
+        // 必须从依赖链最下面开始删除：
+        //
+        // QuestionOption
+        // ↓
+        // ReadingQuestion
+        // ↓
+        // QuestionGroup
+        // ↓
+        // ReadingPassage
+        //
+        // ReadingTest 自己不删除。
+        // =====================================================
+
+        questionOptionRepository
+                .deleteByQuestionGroupReadingPassageReadingTestId(
+                        testId
+                );
+
+        readingQuestionRepository
+                .deleteByReadingPassageReadingTestId(
+                        testId
+                );
+
+        questionGroupRepository
+                .deleteByReadingPassageReadingTestId(
+                        testId
+                );
+
+        readingPassageRepository
+                .deleteByReadingTestId(
+                        testId
+                );
+
+
+        // =====================================================
+        // 4. 更新 ReadingTest 自己的信息
+        // =====================================================
+        //
+        // 数据库 Test ID 不会发生变化。
+        //
+        // 这里只更新：
+        // externalId
+        // title
+        // source
+        // =====================================================
+
+        existingTest.setExternalId(
+                dto.getExternalId()
+        );
+
+        existingTest.setTitle(
+                dto.getTitle()
+        );
+
+        existingTest.setSource(
+                dto.getSource()
+        );
+
+
+        ReadingTest savedTest =
+                readingTestRepository.save(
+                        existingTest
+                );
+
+
+        // =====================================================
+        // 5. 根据新版 JSON 重建 Passage / Group / Question
+        // =====================================================
+
+        saveReadingContent(
+                dto,
+                savedTest
+        );
+
+
+        return savedTest;
+    }
+
+
+    /**
+     * =========================================================
+     * 保存 ReadingTest 下面的实际题库内容
+     * =========================================================
+     *
+     * 这个方法同时被：
+     *
+     * importReading()
+     *
+     * 和：
+     *
+     * reimportReadingContent()
+     *
+     * 使用。
+     *
+     * 这样就不用复制两份很长的 Passage / Question 导入代码。
+     */
+    private void saveReadingContent(
+            ReadingImportDto dto,
+            ReadingTest savedTest
+    ) {
+
+        // =====================================================
+        // 遍历所有 Passage
+        // =====================================================
 
         for (ReadingPassageImportDto passageDto
                 : dto.getPassages()) {
 
             ReadingPassage passage =
                     new ReadingPassage();
+
 
             passage.setPassageNumber(
                     passageDto.getPassageNumber()
@@ -159,23 +386,9 @@ public class ReadingImportService {
                     passageDto.getTitle()
             );
 
-            /**
-             * 把导入 JSON 里的 Passage 公共说明，
-             * 写入 ReadingPassage Entity。
-             *
-             * 数据链路：
-             *
-             * JSON instruction
-             * ↓
-             * ReadingPassageImportDto.instruction
-             * ↓
-             * passageDto.getInstruction()
-             * ↓
-             * ReadingPassage.instruction
-             * ↓
-             * reading_passage.instruction
-             */
-            passage.setInstruction(passageDto.getInstruction());
+            passage.setInstruction(
+                    passageDto.getInstruction()
+            );
 
             passage.setContent(
                     passageDto.getContent()
@@ -185,46 +398,41 @@ public class ReadingImportService {
                     passageDto.getTranslation()
             );
 
+
             /**
-             * 建立关系：
+             * 建立：
              *
-             * ReadingTest
-             *     ↓
              * ReadingPassage
+             *      ↓
+             * ReadingTest
              */
-            passage.setReadingTest(savedTest);
+            passage.setReadingTest(
+                    savedTest
+            );
+
 
             ReadingPassage savedPassage =
-                    readingPassageRepository.save(passage);
+                    readingPassageRepository.save(
+                            passage
+                    );
 
-            // =========================
-// 3. 导入 QuestionGroup
-// =========================
 
-/**
- * 新 JSON 结构：
- *
- * Passage
- *    ↓
- * QuestionGroup
- *    ├── QuestionOption
- *    └── ReadingQuestion
- *
- * 注意：
- * 老 JSON 可能没有 questionGroups，
- * 所以这里必须先判断 null。
- */
+            // =================================================
+            // QuestionGroup
+            // =================================================
+
             if (passageDto.getQuestionGroups() != null) {
 
                 for (QuestionGroupImportDto groupDto
                         : passageDto.getQuestionGroups()) {
 
-                    // ---------------------------------
-                    // 3.1 创建 QuestionGroup
-                    // ---------------------------------
+                    // -----------------------------------------
+                    // 创建 QuestionGroup
+                    // -----------------------------------------
 
                     QuestionGroup group =
                             new QuestionGroup();
+
 
                     group.setReadingPassage(
                             savedPassage
@@ -238,11 +446,10 @@ public class ReadingImportService {
                             groupDto.getInstruction()
                     );
 
+
                     /**
-                     * JSON 如果没有写 allowOptionReuse，
-                     * 默认按 false 处理。
-                     *
-                     * 防止数据库 NOT NULL 字段出现 null。
+                     * JSON 没写 allowOptionReuse 时，
+                     * 默认 false。
                      */
                     group.setAllowOptionReuse(
                             Boolean.TRUE.equals(
@@ -250,13 +457,16 @@ public class ReadingImportService {
                             )
                     );
 
+
                     QuestionGroup savedGroup =
-                            questionGroupRepository.save(group);
+                            questionGroupRepository.save(
+                                    group
+                            );
 
 
-                    // ---------------------------------
-                    // 3.2 保存 QuestionOption
-                    // ---------------------------------
+                    // =========================================
+                    // QuestionOption
+                    // =========================================
 
                     if (groupDto.getOptions() != null) {
 
@@ -265,6 +475,7 @@ public class ReadingImportService {
 
                             QuestionOption option =
                                     new QuestionOption();
+
 
                             option.setQuestionGroup(
                                     savedGroup
@@ -282,6 +493,7 @@ public class ReadingImportService {
                                     optionDto.getDisplayOrder()
                             );
 
+
                             questionOptionRepository.save(
                                     option
                             );
@@ -289,22 +501,9 @@ public class ReadingImportService {
                     }
 
 
-                    // ---------------------------------
-                    // 3.3 保存当前 QuestionGroup 的 Questions
-                    // ---------------------------------
-
-                    /**
-                     * 兼容旧 JSON。
-                     *
-                     * 老题库结构：
-                     *
-                     * Passage
-                     *    ↓
-                     * Questions
-                     *
-                     * 这些 Question 没有 QuestionGroup，
-                     * 所以 groupId 会保持 null。
-                     */
+                    // =========================================
+                    // ReadingQuestion
+                    // =========================================
 
                     if (groupDto.getQuestions() != null) {
 
@@ -312,95 +511,19 @@ public class ReadingImportService {
                                 : groupDto.getQuestions()) {
 
                             ReadingQuestion question =
-                                    new ReadingQuestion();
+                                    createReadingQuestion(
+                                            questionDto,
+                                            savedPassage
+                                    );
 
-                            question.setQuestionNumber(
-                                    questionDto.getQuestionNumber()
-                            );
-
-                            question.setQuestionType(
-                                    questionDto.getQuestionType()
-                            );
-
-                            question.setQuestionText(
-                                    questionDto.getQuestionText()
-                            );
-
-                            question.setCorrectAnswer(
-                                    questionDto.getCorrectAnswer()
-                            );
-
-                            question.setExplanation(
-                                    questionDto.getExplanation()
-                            );
 
                             /**
-                             * 保存当前这道题自己的独立选项。
-                             *
-                             * 主要用于 Multiple Choice。
-                             *
-                             * DTO 中：
-                             * List<String> options
-                             *
-                             * 数据库中：
-                             * reading_question.options_json
-                             */
-                            if (questionDto.getOptions() != null) {
-                                try {
-                                    question.setOptionsJson(
-                                            objectMapper.writeValueAsString(
-                                                    questionDto.getOptions()
-                                            )
-                                    );
-                                } catch (IOException e) {
-                                    throw new IllegalStateException(
-                                            "Failed to serialize Reading question options: "
-                                                    + questionDto.getQuestionNumber(),
-                                            e
-                                    );
-                                }
-                            }
-
-                            /**
-                             * 保存当前题目的原文高亮信息。
-                             *
-                             * DTO 中是 Object，
-                             * 这里统一序列化成 JSON 字符串保存到数据库。
-                             */
-                            if (questionDto.getAnswerHighlight() != null) {
-                                try {
-                                    question.setAnswerHighlightJson(
-                                            objectMapper.writeValueAsString(
-                                                    questionDto.getAnswerHighlight()
-                                            )
-                                    );
-                                } catch (IOException e) {
-                                    throw new IllegalStateException(
-                                            "Failed to serialize answer highlight for question: "
-                                                    + questionDto.getQuestionNumber(),
-                                            e
-                                    );
-                                }
-                            }
-
-                            /**
-                             * 旧关系：
-                             * Question 仍然属于 Passage。
-                             */
-                            question.setReadingPassage(
-                                    savedPassage
-                            );
-
-                            /**
-                             * 新关系：
-                             * Question 同时属于当前 QuestionGroup。
-                             *
-                             * 这里会写入：
-                             * reading_question.group_id
+                             * 保存当前题所属的 Group ID。
                              */
                             question.setGroupId(
                                     savedGroup.getId()
                             );
+
 
                             readingQuestionRepository.save(
                                     question
@@ -410,50 +533,31 @@ public class ReadingImportService {
                 }
             }
 
-            // =========================
-            // 4. 遍历当前 Passage 的 Questions
-            // =========================
-            /**
-             * 兼容旧版 JSON：
-             *
-             * Passage
-             *    ↓
-             * Questions
-             *
-             * 新版 JSON 的问题已经放进 questionGroups，
-             * 所以这里只处理旧数据。
-             */
+
+            // =================================================
+            // 兼容旧版 JSON
+            // =================================================
+            //
+            // 老数据：
+            //
+            // Passage
+            //    ↓
+            // questions
+            //
+            // 没有 QuestionGroup。
+            // =================================================
+
             if (passageDto.getQuestions() != null) {
 
                 for (ReadingQuestionImportDto questionDto
                         : passageDto.getQuestions()) {
 
                     ReadingQuestion question =
-                            new ReadingQuestion();
+                            createReadingQuestion(
+                                    questionDto,
+                                    savedPassage
+                            );
 
-                    question.setQuestionNumber(
-                            questionDto.getQuestionNumber()
-                    );
-
-                    question.setQuestionType(
-                            questionDto.getQuestionType()
-                    );
-
-                    question.setQuestionText(
-                            questionDto.getQuestionText()
-                    );
-
-                    question.setCorrectAnswer(
-                            questionDto.getCorrectAnswer()
-                    );
-
-                    question.setExplanation(
-                            questionDto.getExplanation()
-                    );
-
-                    question.setReadingPassage(
-                            savedPassage
-                    );
 
                     readingQuestionRepository.save(
                             question
@@ -461,8 +565,114 @@ public class ReadingImportService {
                 }
             }
         }
+    }
 
-        // 最后返回已经保存的 ReadingTest。
-        return savedTest;
+
+    /**
+     * =========================================================
+     * 根据 DTO 创建 ReadingQuestion
+     * =========================================================
+     *
+     * 这里统一处理：
+     *
+     * questionNumber
+     * questionType
+     * questionText
+     * correctAnswer
+     * explanation
+     * options
+     * answerHighlight
+     *
+     * 避免新版、旧版 JSON 重复写同一套代码。
+     */
+    private ReadingQuestion createReadingQuestion(
+            ReadingQuestionImportDto questionDto,
+            ReadingPassage savedPassage
+    ) {
+
+        ReadingQuestion question =
+                new ReadingQuestion();
+
+
+        question.setQuestionNumber(
+                questionDto.getQuestionNumber()
+        );
+
+        question.setQuestionType(
+                questionDto.getQuestionType()
+        );
+
+        question.setQuestionText(
+                questionDto.getQuestionText()
+        );
+
+        question.setCorrectAnswer(
+                questionDto.getCorrectAnswer()
+        );
+
+        question.setExplanation(
+                questionDto.getExplanation()
+        );
+
+
+        /**
+         * Question 仍然属于 Passage。
+         */
+        question.setReadingPassage(
+                savedPassage
+        );
+
+
+        // =====================================================
+        // Multiple Choice 独立 options
+        // =====================================================
+
+        if (questionDto.getOptions() != null) {
+
+            try {
+
+                question.setOptionsJson(
+                        objectMapper.writeValueAsString(
+                                questionDto.getOptions()
+                        )
+                );
+
+            } catch (IOException e) {
+
+                throw new IllegalStateException(
+                        "Failed to serialize Reading question options: "
+                                + questionDto.getQuestionNumber(),
+                        e
+                );
+            }
+        }
+
+
+        // =====================================================
+        // 原文答案高亮
+        // =====================================================
+
+        if (questionDto.getAnswerHighlight() != null) {
+
+            try {
+
+                question.setAnswerHighlightJson(
+                        objectMapper.writeValueAsString(
+                                questionDto.getAnswerHighlight()
+                        )
+                );
+
+            } catch (IOException e) {
+
+                throw new IllegalStateException(
+                        "Failed to serialize answer highlight for question: "
+                                + questionDto.getQuestionNumber(),
+                        e
+                );
+            }
+        }
+
+
+        return question;
     }
 }
