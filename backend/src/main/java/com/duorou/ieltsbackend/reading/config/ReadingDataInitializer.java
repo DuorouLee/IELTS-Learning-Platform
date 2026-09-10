@@ -10,11 +10,20 @@ import org.springframework.context.annotation.Configuration;
  * ReadingDataInitializer
  *
  * 作用：
- * 在开发阶段，启动 Spring Boot 时自动检查真实 Reading 数据是否已经导入。
+ * 在开发阶段，Spring Boot 启动完成后，
+ * 自动检查 Reading 测试数据是否已经导入。
  *
- * 数据来源：
+ * 如果某个 Reading Test 已经存在：
+ * 不重复导入。
  *
- * src/main/resources/data/reading/reading-p1-high-01.json
+ * 如果不存在：
+ * 通过 ReadingImportService 从 resources/data/reading/
+ * 读取对应 JSON，并写入 SQLite。
+ *
+ * 当前会检查两份 Reading 数据：
+ *
+ * 1. reading-p1-high-01.json
+ * 2. reading-yasige-test.json
  *
  * 数据流：
  *
@@ -25,6 +34,8 @@ import org.springframework.context.annotation.Configuration;
  * ReadingTest
  *   ↓
  * ReadingPassage
+ *   ↓
+ * QuestionGroup
  *   ↓
  * ReadingQuestion
  *   ↓
@@ -42,26 +53,54 @@ public class ReadingDataInitializer {
             ReadingImportService readingImportService,
             ReadingTestRepository readingTestRepository
     ) {
+
         return args -> {
 
-            /**
-             * p1-high-01 是我们真实题库中的 externalId。
-             *
-             * 如果已经存在：
-             * 不再重复导入。
-             */
-            if (readingTestRepository.existsByExternalId("p1-high-01")) {
-                return;
-            }
+            // =================================================
+            // 1. 导入原来的 Reading 测试数据
+            // =================================================
 
             /**
-             * 如果不存在，
-             * 就通过 ReadingImportService 读取 JSON，
-             * 并保存到 SQLite。
+             * p1-high-01
+             *
+             * 这是原来 reading-p1-high-01.json
+             * 对应的 externalId。
+             *
+             * 如果数据库中不存在，
+             * 就执行导入。
              */
-            readingImportService.importReading(
-                    "reading-p1-high-01.json"
-            );
+            if (!readingTestRepository.existsByExternalId(
+                    "p1-high-01"
+            )) {
+
+                readingImportService.importReading(
+                        "reading-p1-high-01.json"
+                );
+            }
+
+            // =================================================
+            // 2. 导入新转换的完整 Reading Test
+            // =================================================
+
+            /**
+             * 这个 externalId 来自
+             * yasige_to_reading_import.py 生成的 JSON：
+             *
+             * "externalId": "yasige-4202607160914251713"
+             *
+             * 如果数据库中不存在，
+             * 就导入：
+             *
+             * reading-yasige-test.json
+             */
+            if (!readingTestRepository.existsByExternalId(
+                    "yasige-4202607160914251713"
+            )) {
+
+                readingImportService.importReading(
+                        "reading-yasige-test.json"
+                );
+            }
         };
     }
 }
