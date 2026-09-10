@@ -171,7 +171,13 @@ public class ReadingTestService {
                                                             question.getQuestionNumber(),
                                                             question.getQuestionType(),
                                                             question.getQuestionText(),
-                                                            question.getExplanation()
+                                                            question.getExplanation(),
+
+                                                            // 当前题自己的独立选项 JSON
+                                                            question.getOptionsJson(),
+
+                                                            // 当前题对应的原文高亮信息 JSON
+                                                            question.getAnswerHighlightJson()
                                                     )
                                             )
                                             .toList();
@@ -236,7 +242,13 @@ public class ReadingTestService {
                                                                                 question.getQuestionNumber(),
                                                                                 question.getQuestionType(),
                                                                                 question.getQuestionText(),
-                                                                                question.getExplanation()
+                                                                                question.getExplanation(),
+
+                                                                                // 当前题自己的独立选项 JSON
+                                                                                question.getOptionsJson(),
+
+                                                                                // 当前题对应的原文高亮信息 JSON
+                                                                                question.getAnswerHighlightJson()
                                                                         )
                                                                 )
 
@@ -265,7 +277,14 @@ public class ReadingTestService {
                                     passage.getTitle(),
                                     passage.getInstruction(),
                                     passage.getContent(),
+
+                                    // Passage 中文译文
+                                    passage.getTranslation(),
+
+                                    // 当前 Passage 下的 Questions
                                     passageQuestions,
+
+                                    // 当前 Passage 下的 QuestionGroups
                                     passageQuestionGroups
                             );
                         })

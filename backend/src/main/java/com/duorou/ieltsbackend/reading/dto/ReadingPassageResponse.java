@@ -52,6 +52,16 @@ public class ReadingPassageResponse {
     private String content;
 
     /**
+     * Passage 中文译文。
+     *
+     * 来自数据库中的：
+     * reading_passage.translation
+     *
+     * 前端后续可以通过“译文”开关显示或隐藏。
+     */
+    private String translation;
+
+    /**
      * 当前 Passage 下的普通题目列表。
      */
     private List<ReadingQuestionResponse> questions;
@@ -77,6 +87,7 @@ public class ReadingPassageResponse {
             String title,
             String instruction,
             String content,
+            String translation,
             List<ReadingQuestionResponse> questions,
             List<QuestionGroupResponse> questionGroups
     ) {
@@ -85,6 +96,7 @@ public class ReadingPassageResponse {
         this.title = title;
         this.instruction = instruction;
         this.content = content;
+        this.translation = translation;
         this.questions = questions;
         this.questionGroups = questionGroups;
     }
@@ -99,13 +111,15 @@ public class ReadingPassageResponse {
             Integer passageNumber,
             String title,
             String instruction,
-            String content
+            String content,
+            String translation
     ) {
         this.id = id;
         this.passageNumber = passageNumber;
         this.title = title;
         this.instruction = instruction;
         this.content = content;
+        this.translation = translation;
     }
 
     public Long getId() {
@@ -137,5 +151,9 @@ public class ReadingPassageResponse {
 
     public List<QuestionGroupResponse> getQuestionGroups() {
         return questionGroups;
+    }
+
+    public String getTranslation() {
+        return translation;
     }
 }

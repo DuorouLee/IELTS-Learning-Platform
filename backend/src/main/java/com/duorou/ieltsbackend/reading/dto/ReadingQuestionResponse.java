@@ -20,21 +20,44 @@ public class ReadingQuestionResponse {
 
     private String explanation;
 
-    public ReadingQuestionResponse() {
-    }
+
+    /**
+     * 当前题目自己的独立选项。
+     *
+     * 数据库中目前保存为 JSON 字符串：
+     *
+     * ["Option A","Option B","Option C","Option D"]
+     *
+     * 这一轮先直接返回 String，
+     * 下一步前端再决定是否解析成数组。
+     */
+    private String optionsJson;
+
+    /**
+     * 当前题目对应的原文高亮信息。
+     *
+     * 后续用于：
+     * - Review 原文定位
+     * - 答案句高亮
+     */
+    private String answerHighlightJson;
 
     public ReadingQuestionResponse(
             Long id,
             Integer questionNumber,
             String questionType,
             String questionText,
-            String explanation
+            String explanation,
+            String optionsJson,
+            String answerHighlightJson
     ) {
         this.id = id;
         this.questionNumber = questionNumber;
         this.questionType = questionType;
         this.questionText = questionText;
         this.explanation = explanation;
+        this.optionsJson = optionsJson;
+        this.answerHighlightJson = answerHighlightJson;
     }
 
     public Long getId() {
@@ -56,5 +79,13 @@ public class ReadingQuestionResponse {
 
     public String getExplanation() {
         return explanation;
+    }
+
+    public String getOptionsJson() {
+        return optionsJson;
+    }
+
+    public String getAnswerHighlightJson() {
+        return answerHighlightJson;
     }
 }
