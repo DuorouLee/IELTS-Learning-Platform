@@ -536,6 +536,64 @@ def normalize_answer(
     # --------------------------------------------------------
     return str(value)
 
+def clean_answer_highlight(value):
+    """
+    清洗答案定位数据中的明显文本错误。
+
+    当前已确认有一处原文缺字：
+
+        When we nd ways to be quiet
+
+    正确原文应该是：
+
+        When we find ways to be quiet
+
+    这里对整个 answerHighlight 结构递归处理，
+    不管错误文本出现在：
+    - key
+    - value
+    - text
+    - id
+
+    都可以一起修正。
+    """
+
+    if isinstance(value, str):
+
+        # 修复当前已确认的缺字问题。
+        return value.replace(
+            "When we nd ways to be quiet",
+            "When we find ways to be quiet"
+        )
+
+    if isinstance(value, list):
+
+        return [
+            clean_answer_highlight(item)
+            for item in value
+        ]
+
+    if isinstance(value, dict):
+
+        cleaned = {}
+
+        for key, nested_value in value.items():
+
+            # key 自己也可能就是原文句子，
+            # 所以 key 也需要清洗。
+            cleaned_key = clean_answer_highlight(
+                key
+            )
+
+            cleaned[
+                cleaned_key
+            ] = clean_answer_highlight(
+                nested_value
+            )
+
+        return cleaned
+
+    return value
 
 def extract_question_options(
     question_json,
@@ -857,8 +915,10 @@ def build_questions(group):
 
             # 原文答案定位 / 高亮信息。
             "answerHighlight":
-                answer_item.get(
-                    "articleSourceHighlight"
+                clean_answer_highlight(
+                    answer_item.get(
+                        "articleSourceHighlight"
+                    )
                 ),
         })
 
