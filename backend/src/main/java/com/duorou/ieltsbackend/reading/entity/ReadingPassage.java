@@ -102,6 +102,15 @@ public class ReadingPassage {
     @Column(name = "instruction")
     private String instruction;
 
+    /**
+     * Passage 中文译文。
+     *
+     * 当前真实题库中已经存在 articleTranslation，
+     * 后续前端可以通过“译文”开关显示/隐藏。
+     */
+    @Column(name = "translation", columnDefinition = "TEXT")
+    private String translation;
+
     public ReadingPassage() {
     }
 
@@ -157,5 +166,13 @@ public class ReadingPassage {
      */
     public void setInstruction(String instruction) {
         this.instruction = instruction;
+    }
+
+    public String getTranslation() {
+        return translation;
+    }
+
+    public void setTranslation(String translation) {
+        this.translation = translation;
     }
 }

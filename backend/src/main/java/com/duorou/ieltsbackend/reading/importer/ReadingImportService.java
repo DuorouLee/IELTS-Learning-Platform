@@ -181,6 +181,10 @@ public class ReadingImportService {
                     passageDto.getContent()
             );
 
+            passage.setTranslation(
+                    passageDto.getTranslation()
+            );
+
             /**
              * 建立关系：
              *

@@ -101,4 +101,17 @@ public class ReadingPassageImportDto {
     public void setInstruction(String instruction) {
         this.instruction = instruction;
     }
+
+    /**
+     * Passage 中文译文。
+     */
+    private String translation;
+
+    public String getTranslation() {
+        return translation;
+    }
+
+    public void setTranslation(String translation) {
+        this.translation = translation;
+    }
 }
