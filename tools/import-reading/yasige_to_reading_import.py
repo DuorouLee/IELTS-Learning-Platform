@@ -285,19 +285,18 @@ def build_passage(passage):
         )
 
     return {
-        # 雅思哥 part 已经是 1 / 2 / 3。
         "passageNumber": passage.get("part"),
 
-        # passagesQuestion 很可能是 Passage 标题或说明。
-        # 第一版先作为 title 保存。
         "title": passage.get("passagesQuestion"),
 
-        # 当前你的 DTO 有 instruction，
-        # 但雅思哥 Passage 层暂时没有发现独立 instruction 字段。
         "instruction": None,
 
-        # 阅读正文。
+        # 英文原文
         "content": passage.get("passagesContent"),
+
+        # 中文译文
+        # 对应雅思哥 Response 中的 articleTranslation
+        "translation": passage.get("articleTranslation"),
 
         "questionGroups": question_groups,
     }
