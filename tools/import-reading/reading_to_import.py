@@ -23,12 +23,79 @@ OUTPUT_FILE = Path(
 # ============================================================
 
 QUESTION_TYPE_MAP = {
-    0: "TRUE_FALSE_NOT_GIVEN",
+    # Completion 类：
+    # 例如 Note Completion / Summary Completion
+    0: "COMPLETION",
+
+    # 标准 A/B/C/D 单选
     1: "MULTIPLE_CHOICE",
+
+    # 当前真实数据中另一种选择题编码
     3: "MULTIPLE_CHOICE",
+
+    # Matching 类题目
     4: "MATCHING",
 }
 
+def detect_question_type(group):
+    """
+    根据雅思哥真实题组结构判断我们平台使用的 questionType。
+
+    为什么不能只依赖 group["questionType"]？
+
+    因为当前真实 Reading 数据里，
+    Completion 类型的内容可能保存在：
+
+        questionJson.questionsContent
+
+    里面，而且它是一整块 HTML，例如：
+
+        their grandfather's wealth came from ...... and transportation businesses
+
+    这种题的核心特征是：
+    1. questionsContent 是字符串
+    2. 里面存在连续多个英文句点，例如 "......"
+    3. 这些点代表 IELTS Completion 的填写空格
+
+    如果符合这个结构，
+    我们优先判断为 COMPLETION。
+
+    如果不符合，再回到原来已经验证过的 questionType 映射。
+
+    这样不会直接把 questionType=0 全部改成 Completion，
+    可以保护已经正常工作的 TRUE_FALSE_NOT_GIVEN。
+    """
+
+    question_json = group.get("questionJson") or {}
+
+    questions_content = question_json.get("questionsContent")
+
+    # --------------------------------------------------------
+    # Completion 检测
+    #
+    # 雅思哥填空题模板目前表现为：
+    #
+    # ......
+    #
+    # 即至少 5 个连续英文句点。
+    #
+    # 这里不解析 HTML，
+    # 只判断真实原始模板中是否存在填空占位符。
+    # --------------------------------------------------------
+    if isinstance(questions_content, str):
+        if "....." in questions_content:
+            return "COMPLETION"
+
+    # --------------------------------------------------------
+    # 如果不是 Completion，
+    # 则继续使用目前已有的题型映射。
+    # --------------------------------------------------------
+    question_type_code = group.get("questionType")
+
+    return QUESTION_TYPE_MAP.get(
+        question_type_code,
+        f"YASIGE_{question_type_code}"
+    )
 
 def normalize_answer(value, question_type):
     """
@@ -143,12 +210,13 @@ def build_questions(group):
     if question_count is None:
         question_count = question_json.get("questionNum", 0)
 
-    question_type_code = group.get("questionType")
-
-    question_type = QUESTION_TYPE_MAP.get(
-        question_type_code,
-        f"YASIGE_{question_type_code}"
-    )
+    # ------------------------------------------------------------
+    # 不再直接根据雅思哥数字 questionType 判断。
+    #
+    # Completion 需要结合 questionsContent 的真实结构判断。
+    # 其他题型仍然走原来的映射。
+    # ------------------------------------------------------------
+    question_type = detect_question_type(group)
 
     result = []
 
@@ -261,12 +329,16 @@ def build_question_group(group):
 
     question_json = group.get("questionJson") or {}
 
-    question_type_code = group.get("questionType")
-
-    question_type = QUESTION_TYPE_MAP.get(
-        question_type_code,
-        f"YASIGE_{question_type_code}"
-    )
+    # QuestionGroup 和里面的 ReadingQuestion
+    # 必须使用完全相同的题型判断逻辑。
+    #
+    # 否则可能出现：
+    #
+    # QuestionGroup = TRUE_FALSE_NOT_GIVEN
+    # ReadingQuestion = COMPLETION
+    #
+    # 这种前后不一致的数据。
+    question_type = detect_question_type(group)
 
     return {
         "questionType": question_type,

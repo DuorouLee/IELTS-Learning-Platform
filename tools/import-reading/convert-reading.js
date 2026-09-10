@@ -105,7 +105,7 @@ function stripHtml(html) {
  * 这样不会针对某一篇文章写死，
  * 后续其他 Reading Passage 也可以复用。
  */
-function extractPassageTitle(blocks) {
+function extractPassageTitle(blocks, fallbackTitle) {
   for (const block of blocks) {
     if (!block.html) {
       continue;
@@ -122,12 +122,14 @@ function extractPassageTitle(blocks) {
   }
 
   /**
-   * 如果某些题库没有 h3，
-   * 再退回原始 meta.title。
+   * 如果 Passage HTML 中没有 <h3>，
+   * 就退回 meta.title。
    *
-   * 不在这里猜标题。
+   * 不能返回 passageTitle，
+   * 因为 passageTitle 本身正是这个函数的返回结果，
+   * 会形成错误的自引用。
    */
-  return passageTitle;
+  return fallbackTitle;
 }
 
 /**
@@ -499,7 +501,10 @@ function convertQuestionGroup(group) {
 /**
  * 从 Passage HTML 中提取正式英文标题。
  */
-const passageTitle = extractPassageTitle(source.passage.blocks);
+const passageTitle = extractPassageTitle(
+  source.passage.blocks,
+  source.meta.title,
+);
 
 /**
  * 先得到原始 Passage 全部文本。
