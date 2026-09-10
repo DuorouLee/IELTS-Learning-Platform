@@ -331,6 +331,33 @@ public class ReadingImportService {
                             );
 
                             /**
+                             * 保存当前这道题自己的独立选项。
+                             *
+                             * 主要用于 Multiple Choice。
+                             *
+                             * DTO 中：
+                             * List<String> options
+                             *
+                             * 数据库中：
+                             * reading_question.options_json
+                             */
+                            if (questionDto.getOptions() != null) {
+                                try {
+                                    question.setOptionsJson(
+                                            objectMapper.writeValueAsString(
+                                                    questionDto.getOptions()
+                                            )
+                                    );
+                                } catch (IOException e) {
+                                    throw new IllegalStateException(
+                                            "Failed to serialize Reading question options: "
+                                                    + questionDto.getQuestionNumber(),
+                                            e
+                                    );
+                                }
+                            }
+
+                            /**
                              * 旧关系：
                              * Question 仍然属于 Passage。
                              */

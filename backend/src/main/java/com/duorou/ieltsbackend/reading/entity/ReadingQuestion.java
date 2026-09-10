@@ -99,6 +99,26 @@ public class ReadingQuestion {
     @Column(name = "group_id")
     private Long groupId;
 
+    /**
+     * 当前题目自己的独立选项。
+     *
+     * 主要用于 Multiple Choice。
+     *
+     * 数据库中保存为 JSON 字符串，例如：
+     *
+     * ["Option A","Option B","Option C","Option D"]
+     *
+     * 为什么不用 QuestionOption？
+     *
+     * QuestionOption 当前属于整个 QuestionGroup，
+     * 适合 Matching 这种“一组题共享同一组选项”的情况。
+     *
+     * Multiple Choice 中每一道题的选项通常不同，
+     * 所以需要保存到 ReadingQuestion 自己身上。
+     */
+    @Column(name = "options_json", columnDefinition = "TEXT")
+    private String optionsJson;
+
     public ReadingQuestion() {
     }
 
@@ -172,5 +192,18 @@ public class ReadingQuestion {
         this.groupId = groupId;
     }
 
+    /**
+     * 获取当前题目的独立选项 JSON。
+     */
+    public String getOptionsJson() {
+        return optionsJson;
+    }
+
+    /**
+     * 设置当前题目的独立选项 JSON。
+     */
+    public void setOptionsJson(String optionsJson) {
+        this.optionsJson = optionsJson;
+    }
 
 }
