@@ -5,37 +5,51 @@ from pathlib import Path
 
 
 # ============================================================
-# 输入 / 输出文件
+# 批量输入 / 输出目录
 # ============================================================
 #
-# INPUT_FILE：
-# 原始 Reading 接口响应。
+# raw/
+#   c21-test-1.json
+#   c21-test-1.meta.json
+#   ...
 #
-# OUTPUT_FILE：
-# 转换成后端 ReadingImportDto 可以读取的 JSON。
-#
-INPUT_FILE = Path(
-    r"C:\Users\21931\Desktop\temp\examPassagesV2_real_response.json"
-)
-
-OUTPUT_FILE = Path(
-    r"C:\Users\21931\Desktop\temp\reading_import_converted.json"
-)
-
-
-# ============================================================
-# 当前完整 Reading Test 的基础信息
-# ============================================================
-#
-# 这里使用中性的项目内部名称。
+# converted/
+#   c21-test-1.json
+#   c21-test-2.json
+#   ...
 #
 # 注意：
-# 如果数据库中已经存在旧 externalId，
-# 后续重新导入时需要同步处理数据库中的 externalId。
+# raw/ 建议加入 .gitignore，不提交原始题库。
 #
-EXTERNAL_ID = "reading-test-01"
-TEST_TITLE = "Reading Test 01"
-TEST_SOURCE = None
+SCRIPT_FILE = Path(__file__).resolve()
+PROJECT_ROOT = SCRIPT_FILE.parents[2]
+
+RAW_DIR = (
+    PROJECT_ROOT
+    / "backend"
+    / "src"
+    / "main"
+    / "resources"
+    / "data"
+    / "reading"
+    / "raw"
+)
+
+CONVERTED_DIR = (
+    PROJECT_ROOT
+    / "backend"
+    / "src"
+    / "main"
+    / "resources"
+    / "data"
+    / "reading"
+    / "converted"
+)
+
+SUMMARY_FILE = (
+    CONVERTED_DIR
+    / "conversion-summary.json"
+)
 
 
 def get_question_json(group):
@@ -176,93 +190,159 @@ def get_question_option_texts(question_json):
 
 def detect_question_type(group):
     """
-    根据“真实题组结构”判断平台内部 questionType。
+    根据真实题目语义 + 结构识别平台内部 questionType。
 
-    这里不再使用简单的：
-        0 -> 某题型
-        3 -> 某题型
-        4 -> 某题型
+    不直接把某个数字类型硬编码成某个 IELTS 题型，
+    因为同一组原始数字在不同试题中可能代表不同语义。
 
-    因为同一个原始数字类型可能对应不同的 IELTS 语义题型。
-
-    当前判断顺序：
-
-    1. SUMMARY_COMPLETION_WITH_OPTIONS
-    2. COMPLETION
-    3. TRUE_FALSE_NOT_GIVEN
-    4. YES_NO_NOT_GIVEN
-    5. MATCHING_INFORMATION
-    6. MATCHING_FEATURES
-    7. MULTIPLE_CHOICE
-    8. UNKNOWN_xxx
-
-    以后导入新的 Reading Test 时，
-    如果遇到新结构，只需要继续扩展这个函数。
+    当前支持：
+    - MATCHING_HEADINGS
+    - MATCHING_SENTENCE_ENDINGS
+    - MATCHING_INFORMATION
+    - MATCHING_FEATURES
+    - SUMMARY_COMPLETION_WITH_OPTIONS
+    - TRUE_FALSE_NOT_GIVEN
+    - YES_NO_NOT_GIVEN
+    - MULTIPLE_CHOICE
+    - COMPLETION
     """
 
-    question_json = get_question_json(group)
+    question_json = get_question_json(
+        group
+    )
 
     descriptions = html_to_plain_text(
-        question_json.get("descriptions")
+        question_json.get(
+            "descriptions"
+        )
     ).lower()
 
-    questions_content = question_json.get(
-        "questionsContent"
+    questions_content = (
+        question_json.get(
+            "questionsContent"
+        )
     )
 
-    match_options = question_json.get(
-        "matchOptions"
+    questions_content_text = (
+        html_to_plain_text(
+            questions_content
+        ).lower()
     )
 
-    question_option_groups = get_question_option_texts(
-        question_json
+    match_options = (
+        question_json.get(
+            "matchOptions"
+        )
+    )
+
+    question_option_groups = (
+        get_question_option_texts(
+            question_json
+        )
+    )
+
+    first_type = group.get(
+        "firstQuestionType"
+    )
+
+    second_type = group.get(
+        "secondQuestionType"
+    )
+
+    has_shared_options = (
+        isinstance(
+            match_options,
+            list
+        )
+        and len(
+            match_options
+        ) > 0
     )
 
     # --------------------------------------------------------
-    # 1. 带共享选项的 Summary Completion
-    #
-    # 示例：
-    # Complete the summary using the list of words, A–I, below.
+    # 1. Matching Headings
+    # --------------------------------------------------------
+    if (
+        has_shared_options
+        and (
+            "choose the correct heading"
+            in descriptions
+            or "list of headings"
+            in descriptions
+        )
+    ):
+        return "MATCHING_HEADINGS"
+
+    # --------------------------------------------------------
+    # 2. Matching Sentence Endings
+    # --------------------------------------------------------
+    if (
+        has_shared_options
+        and (
+            "complete each sentence with the correct ending"
+            in descriptions
+        )
+    ):
+        return "MATCHING_SENTENCE_ENDINGS"
+
+    # --------------------------------------------------------
+    # 3. Matching Information
+    # --------------------------------------------------------
+    if (
+        has_shared_options
+        and (
+            "which paragraph contains"
+            in descriptions
+            or "which section contains"
+            in descriptions
+        )
+    ):
+        return "MATCHING_INFORMATION"
+
+    # --------------------------------------------------------
+    # 4. Matching Features
+    # --------------------------------------------------------
+    if (
+        has_shared_options
+        and (
+            (
+                "match each "
+                in descriptions
+                and " with the correct "
+                in descriptions
+            )
+            or (
+                "look at the following"
+                in descriptions
+                and "match each"
+                in descriptions
+            )
+        )
+    ):
+        return "MATCHING_FEATURES"
+
+    # --------------------------------------------------------
+    # 5. 带共享选项的 Summary Completion
     # --------------------------------------------------------
     if (
         "complete the summary using the list of words"
         in descriptions
-        and isinstance(match_options, list)
-        and len(match_options) > 0
+        and has_shared_options
     ):
-        return "SUMMARY_COMPLETION_WITH_OPTIONS"
-
-    # --------------------------------------------------------
-    # 2. 普通 Completion
-    #
-    # 当前真实数据包括：
-    # - Complete the notes below.
-    # - Complete the summary below.
-    #
-    # 并且 questionsContent 中含有 ...... 填空位置。
-    # --------------------------------------------------------
-    if (
-        isinstance(questions_content, str)
-        and "....." in questions_content
-        and (
-            "complete the notes" in descriptions
-            or "complete the summary" in descriptions
+        return (
+            "SUMMARY_COMPLETION_WITH_OPTIONS"
         )
-    ):
-        return "COMPLETION"
 
     # --------------------------------------------------------
-    # 3 / 4. TRUE/FALSE/NOT GIVEN 与 YES/NO/NOT GIVEN
-    #
-    # 直接检查 questions[] 的真实选项，
-    # 比依赖原始数字 questionType 更可靠。
+    # 6 / 7. 判断题
     # --------------------------------------------------------
     first_options = []
 
     if question_option_groups:
         first_options = [
             option.upper()
-            for option in question_option_groups[0]
+            for option
+            in question_option_groups[0]
         ]
 
     if first_options == [
@@ -280,61 +360,106 @@ def detect_question_type(group):
         return "YES_NO_NOT_GIVEN"
 
     # --------------------------------------------------------
-    # 5. Matching Information
-    #
-    # 典型说明：
-    # Which section contains the following information?
+    # 8. Multiple Choice
     # --------------------------------------------------------
-    if (
-        isinstance(match_options, list)
-        and "which section contains" in descriptions
+    source_questions = (
+        question_json.get(
+            "questions"
+        )
+    )
+
+    if isinstance(
+        source_questions,
+        list
     ):
-        return "MATCHING_INFORMATION"
-
-    # --------------------------------------------------------
-    # 6. Matching Features
-    #
-    # 典型说明：
-    # Match each statement with the correct person...
-    # --------------------------------------------------------
-    if (
-        isinstance(match_options, list)
-        and "match each statement with the correct"
-        in descriptions
-    ):
-        return "MATCHING_FEATURES"
-
-    # --------------------------------------------------------
-    # 7. 标准 Multiple Choice
-    #
-    # questions[] 存在，
-    # 且每一道题都有自己的选项。
-    # --------------------------------------------------------
-    source_questions = question_json.get("questions")
-
-    if isinstance(source_questions, list):
-
         has_individual_options = any(
             len(options) >= 2
-            for options in question_option_groups
+            for options
+            in question_option_groups
         )
 
         if has_individual_options:
             return "MULTIPLE_CHOICE"
 
     # --------------------------------------------------------
-    # 8. 暂时无法识别的新题型
-    #
-    # 保留原始两个类型代码，方便以后定位，
-    # 但不带任何外部来源名称。
+    # 9. Completion 家族
     # --------------------------------------------------------
-    first_type = group.get("firstQuestionType")
-    second_type = group.get("secondQuestionType")
+    #
+    # 当前前端的 CompletionQuestionGroup
+    # 会把 questionsContent 中的 ...... 转成输入框，
+    # 所以这些语义可以共用 COMPLETION：
+    #
+    # - Sentence Completion
+    # - Notes Completion
+    # - Summary Completion
+    # - Table Completion
+    # - Flow-chart Completion
+    # - Diagram Label Completion
+    # - Short Answer
+    # --------------------------------------------------------
+    has_blank = (
+        isinstance(
+            questions_content,
+            str
+        )
+        and "....."
+        in questions_content_text
+    )
+
+    explicit_completion_instruction = (
+        "complete the notes"
+        in descriptions
+        or "complete the summary"
+        in descriptions
+        or "complete the sentences"
+        in descriptions
+        or "complete the sentence"
+        in descriptions
+        or "complete the table"
+        in descriptions
+        or "complete the flow-chart"
+        in descriptions
+        or "complete the flow chart"
+        in descriptions
+        or "label the diagram"
+        in descriptions
+        or "label the diagrams"
+        in descriptions
+        or "answer the questions below"
+        in descriptions
+    )
+
+    if (
+        has_blank
+        and (
+            explicit_completion_instruction
+            or first_type == 0
+        )
+    ):
+        return "COMPLETION"
+
+    # --------------------------------------------------------
+    # 10. 共享选项结构兜底
+    # --------------------------------------------------------
+    #
+    # 极少数旧题说明文字只有：
+    # "Choose the correct answer and move it into the gap."
+    #
+    # 但其结构仍然是：
+    # questionsContent + matchOptions。
+    #
+    # 前面的 Headings / Information / Sentence Endings
+    # 已经优先识别，因此这里安全地归为 Matching Features。
+    # --------------------------------------------------------
+    if (
+        has_shared_options
+        and first_type == 4
+    ):
+        return "MATCHING_FEATURES"
 
     return (
         f"UNKNOWN_{first_type}_{second_type}"
     )
-
 
 def build_group_options(question_json):
     """
@@ -520,8 +645,10 @@ def normalize_answer(
     # 答案索引转换成 matchOptions 的 optionValue。
     # --------------------------------------------------------
     if question_type in {
+        "MATCHING_HEADINGS",
         "MATCHING_INFORMATION",
         "MATCHING_FEATURES",
+        "MATCHING_SENTENCE_ENDINGS",
         "SUMMARY_COMPLETION_WITH_OPTIONS",
     }:
 
@@ -658,24 +785,21 @@ def extract_numbered_question_text(
     next_question_number=None,
 ):
     """
-    从整块 questionsContent 中拆出一条 Matching 题干。
+    从整块 questionsContent 中拆出一条带题号的 Matching 题干。
 
-    原始数据可能类似：
+    真实数据里的题号格式并不完全统一，例如：
 
-        22 It is unpleasant ... ......
-        23 The trend ... ......
-        24 When our body's senses ... ......
+        14 text...
+        14. text...
+        14) text...
 
-    我们先把 HTML 转成纯文本，
-    再按照真实题号切片。
+    所以这里允许题号后面出现：
+    - 空格
+    - .
+    - )
 
-    返回结果不会包含：
-    - <div>
-    - <br>
-    - &nbsp;
-    - &middot;
-
-    也不会把整块 HTML 重复显示给每一道题。
+    如果当前文本本身没有题号，
+    本函数返回 None，后面再使用按行拆分的兜底逻辑。
     """
 
     text = html_to_plain_text(
@@ -685,12 +809,18 @@ def extract_numbered_question_text(
     if not text:
         return None
 
-    # 当前题号必须位于一条题目的开头。
+    # 允许：
+    # 14 text
+    # 14. text
+    # 14) text
     start_pattern = re.compile(
-        rf"(?m)^\s*{re.escape(str(question_number))}\s+"
+        rf"(?m)^\s*{re.escape(str(question_number))}"
+        rf"\s*[\.\)]?\s+"
     )
 
-    start_match = start_pattern.search(text)
+    start_match = start_pattern.search(
+        text
+    )
 
     if start_match is None:
         return None
@@ -700,7 +830,8 @@ def extract_numbered_question_text(
     if next_question_number is not None:
 
         next_pattern = re.compile(
-            rf"(?m)^\s*{re.escape(str(next_question_number))}\s+"
+            rf"(?m)^\s*{re.escape(str(next_question_number))}"
+            rf"\s*[\.\)]?\s+"
         )
 
         next_match = next_pattern.search(
@@ -720,14 +851,88 @@ def extract_numbered_question_text(
         start_position:end_position
     ].strip()
 
-    # 删除 Matching 原文末尾用于放答案的 ......。
+    # 删除末尾用于放答案的 ......
     question_text = re.sub(
         r"\s*\.{5,}\s*$",
         "",
         question_text
     ).strip()
 
-    return question_text
+    return (
+        question_text
+        if question_text
+        else None
+    )
+
+
+def extract_matching_question_text_by_line(
+    questions_content,
+    local_index,
+):
+    """
+    Matching 旧题的兜底拆分。
+
+    有些原始数据完全没有题号，例如：
+
+        to remove trees that are diseased......
+        to generate income across a number of years......
+        to create a forest whose trees are close in age......
+
+    这种情况下不能靠 Question 19 / 20 / 21 去搜索题号，
+    只能按照 questionsContent 中的自然顺序拆分。
+
+    local_index:
+        当前题在这个 QuestionGroup 中的位置：
+        0, 1, 2, ...
+
+    返回：
+        对应位置的一条题干。
+    """
+
+    text = html_to_plain_text(
+        questions_content
+    )
+
+    if not text:
+        return None
+
+    lines = []
+
+    for raw_line in text.splitlines():
+
+        line = raw_line.strip()
+
+        if not line:
+            continue
+
+        # 去掉末尾答案占位符。
+        line = re.sub(
+            r"\s*\.{5,}\s*$",
+            "",
+            line
+        ).strip()
+
+        # 如果这一行仍然带题号，
+        # 顺手把开头题号去掉。
+        line = re.sub(
+            r"^\s*\d+\s*[\.\)]?\s*",
+            "",
+            line
+        ).strip()
+
+        if line:
+            lines.append(
+                line
+            )
+
+    if (
+        0 <= local_index < len(lines)
+    ):
+        return lines[
+            local_index
+        ]
+
+    return None
 
 
 def extract_question_text(
@@ -772,41 +977,115 @@ def extract_question_text(
             ]
 
             if isinstance(item, dict):
-                return item.get("content")
+
+                # 某些真实题目的 questions[] 存在，
+                # 但单题 content 可能是 null。
+                #
+                # 不能直接 return None，
+                # 否则会违反数据库中 question_text 的 NOT NULL 约束。
+                item_content = item.get(
+                    "content"
+                )
+
+                if item_content is not None:
+                    return item_content
 
     questions_content = question_json.get(
         "questionsContent"
     )
 
     # Matching 需要真正拆成单题，
-    # 避免每一道题重复整块 HTML。
+    # 避免每一道题重复整块 questionsContent。
     if question_type in {
+        "MATCHING_HEADINGS",
         "MATCHING_INFORMATION",
         "MATCHING_FEATURES",
+        "MATCHING_SENTENCE_ENDINGS",
     }:
 
-        return extract_numbered_question_text(
-            questions_content,
-            question_number,
-            question_number + 1,
+        # 第一层：
+        # 优先按照真实题号拆分。
+        matching_text = (
+            extract_numbered_question_text(
+                questions_content,
+                question_number,
+                question_number + 1,
+            )
         )
 
-    # Completion 类当前仍使用整块模板。
-    return questions_content
+        if matching_text is not None:
+            return matching_text
+
+        # 第二层：
+        # 有些旧题 questionsContent 完全没有题号，
+        # 按题组内部顺序逐行拆分。
+        matching_text = (
+            extract_matching_question_text_by_line(
+                questions_content,
+                local_index,
+            )
+        )
+
+        if matching_text is not None:
+            return matching_text
+
+        # 第三层：
+        # 极端异常数据至少保证数据库 NOT NULL。
+        return f"Question {question_number}"
+
+    # Completion / 特殊旧题优先使用整块模板。
+    if questions_content is not None:
+        return questions_content
+
+    # 最后的数据安全兜底。
+    # question_text 在数据库中是 NOT NULL。
+    return f"Question {question_number}"
 
 
 def build_questions(group):
     """
     把一个题组转换成 ReadingQuestionImportDto 列表。
+
+    特别处理 IELTS 多答案选择题，例如：
+
+        Questions 25 and 26
+        Choose TWO letters, A-E.
+
+    原始数据可能只有：
+
+        questions = [一个题干]
+        answerJson = [
+            {
+                "correctValue": [1, 2]
+            }
+        ]
+
+    但 questionCount = 2。
+
+    这里需要把：
+
+        [1, 2]
+
+    拆成两个平台题号：
+
+        Q25 -> B
+        Q26 -> C
+
+    两个题号共享同一个题干和同一组选项。
     """
 
-    question_json = get_question_json(group)
+    question_json = get_question_json(
+        group
+    )
 
     answer_json = group.get(
         "answerJson"
     )
 
-    if not isinstance(answer_json, list):
+    if not isinstance(
+        answer_json,
+        list
+    ):
         answer_json = []
 
     start_index = question_json.get(
@@ -827,8 +1106,13 @@ def build_questions(group):
         )
 
     try:
-        question_count = int(question_count)
-    except (TypeError, ValueError):
+        question_count = int(
+            question_count
+        )
+    except (
+        TypeError,
+        ValueError,
+    ):
         question_count = 0
 
     question_type = detect_question_type(
@@ -840,6 +1124,66 @@ def build_questions(group):
             question_json
         )
     )
+
+    # ========================================================
+    # 判断是否属于“一道题干 + 多个答案框”的 Multiple Choice
+    # ========================================================
+    #
+    # 例如：
+    #
+    # Questions 25 and 26
+    # Choose TWO letters, A-E.
+    #
+    # answerJson:
+    #
+    # [
+    #   {
+    #     "correctValue": [1, 2]
+    #   }
+    # ]
+    #
+    # [1, 2] 是零基索引：
+    #
+    # 1 -> B
+    # 2 -> C
+    # ========================================================
+
+    multi_answer_values = None
+    multi_answer_item = None
+
+    if (
+        question_type
+        == "MULTIPLE_CHOICE"
+        and len(answer_json) == 1
+        and isinstance(
+            answer_json[0],
+            dict
+        )
+    ):
+
+        possible_values = (
+            answer_json[0].get(
+                "correctValue"
+            )
+        )
+
+        if (
+            isinstance(
+                possible_values,
+                list
+            )
+            and len(
+                possible_values
+            )
+            == question_count
+        ):
+            multi_answer_values = (
+                possible_values
+            )
+
+            multi_answer_item = (
+                answer_json[0]
+            )
 
     result = []
 
@@ -853,30 +1197,81 @@ def build_questions(group):
         )
 
         answer_item = {}
+        correct_value = None
 
-        if local_index < len(answer_json):
+        # ----------------------------------------------------
+        # 多答案 Multiple Choice：
+        #
+        # 一个 answerJson 对应多个题号。
+        # ----------------------------------------------------
+        if (
+            multi_answer_values
+            is not None
+        ):
 
-            possible_answer = answer_json[
+            answer_item = (
+                multi_answer_item
+                or {}
+            )
+
+            correct_value = (
+                multi_answer_values[
+                    local_index
+                ]
+            )
+
+            # 多个答案框共享同一个题干 / 选项。
+            source_local_index = 0
+
+        # ----------------------------------------------------
+        # 普通题型：
+        #
+        # 一个 answerJson 对应一个题号。
+        # ----------------------------------------------------
+        else:
+
+            source_local_index = (
                 local_index
-            ]
+            )
 
-            if isinstance(
-                possible_answer,
-                dict
+            if (
+                local_index
+                < len(
+                    answer_json
+                )
             ):
-                answer_item = possible_answer
+
+                possible_answer = (
+                    answer_json[
+                        local_index
+                    ]
+                )
+
+                if isinstance(
+                    possible_answer,
+                    dict
+                ):
+                    answer_item = (
+                        possible_answer
+                    )
+
+            correct_value = (
+                answer_item.get(
+                    "correctValue"
+                )
+            )
 
         question_options = (
             extract_question_options(
                 question_json,
-                local_index,
+                source_local_index,
             )
         )
 
         question_text = (
             extract_question_text(
                 question_json,
-                local_index,
+                source_local_index,
                 question_number,
                 question_type,
             )
@@ -892,28 +1287,25 @@ def build_questions(group):
             "questionText":
                 question_text,
 
-            # 当前题自己的独立选项。
-            # Matching 的共享选项不会重复存到这里。
             "options":
                 question_options,
 
             "correctAnswer":
                 normalize_answer(
-                    answer_item.get(
-                        "correctValue"
-                    ),
+                    correct_value,
                     question_type,
                     question_options,
                     group_option_values,
                 ),
 
-            # 答案解析。
+            # 多答案 Multiple Choice 的两个答案框
+            # 属于同一道原始题，所以可以共享解析。
             "explanation":
                 answer_item.get(
                     "explain"
                 ),
 
-            # 原文答案定位 / 高亮信息。
+            # 同理，共享官方原文定位。
             "answerHighlight":
                 clean_answer_highlight(
                     answer_item.get(
@@ -931,11 +1323,15 @@ def detect_allow_option_reuse(
     """
     判断共享选项是否允许重复使用。
 
-    IELTS Matching 中经常会出现：
+    IELTS Matching 中经常出现：
 
         NB You may use any letter more than once.
 
-    这种情况下返回 True。
+    如果题目说明中包含这句话，
+    就返回 True。
+
+    这个值最终会写入 QuestionGroup.allowOptionReuse，
+    前端可以据此决定同一个选项是否允许被多个题目重复选择。
     """
 
     descriptions = html_to_plain_text(
@@ -948,7 +1344,6 @@ def detect_allow_option_reuse(
         "may use any letter more than once"
         in descriptions
     )
-
 
 def build_question_group(group):
     """
@@ -1047,33 +1442,34 @@ def build_passage(passage):
     }
 
 
-def print_conversion_summary(passages):
+def count_questions(passages):
     """
-    打印转换结果摘要。
-
-    除了数量，还打印每个 QuestionGroup 的：
-    - 题号范围
-    - questionType
-    - questions 数量
-
-    这样每次修改 converter 后，
-    可以先在终端验证，而不用马上导数据库。
+    统计整套 Reading 的 Question 总数。
     """
 
-    print()
-    print("转换完成。")
-    print()
+    total = 0
 
-    print("输出文件：")
-    print(OUTPUT_FILE)
-    print()
+    for passage in passages:
+        for group in passage.get(
+            "questionGroups",
+            []
+        ):
+            total += len(
+                group.get(
+                    "questions",
+                    []
+                )
+            )
 
-    print(
-        f"Passage 数量：{len(passages)}"
-    )
+    return total
 
-    total_groups = 0
-    total_questions = 0
+
+def find_unknown_question_types(passages):
+    """
+    找出当前 converter 还不能识别的题型。
+    """
+
+    unknown_types = []
 
     for passage in passages:
 
@@ -1081,108 +1477,250 @@ def print_conversion_summary(passages):
             "passageNumber"
         )
 
-        groups = passage.get(
+        for group in passage.get(
             "questionGroups",
             []
+        ):
+
+            question_type = group.get(
+                "questionType",
+                ""
+            )
+
+            if str(
+                question_type
+            ).startswith(
+                "UNKNOWN_"
+            ):
+                unknown_types.append({
+                    "passageNumber":
+                        passage_number,
+
+                    "questionType":
+                        question_type,
+                })
+
+    return unknown_types
+
+
+def validate_converted_test(passages):
+    """
+    批量转换后的基础质量检查。
+
+    当前完整 IELTS Reading 应满足：
+
+    - Passage = 3
+    - Question = 40
+    - 不存在 UNKNOWN_xxx 题型
+
+    返回：
+        (True, [])
+        或
+        (False, ["错误1", "错误2"])
+    """
+
+    errors = []
+
+    if len(passages) != 3:
+        errors.append(
+            f"Passage 数量不是 3，而是 {len(passages)}"
         )
 
-        for group in groups:
+    question_count = count_questions(
+        passages
+    )
 
-            total_groups += 1
+    if question_count != 40:
+        errors.append(
+            f"Question 数量不是 40，而是 {question_count}"
+        )
 
-            questions = group.get(
+    unknown_types = (
+        find_unknown_question_types(
+            passages
+        )
+    )
+
+    for item in unknown_types:
+        errors.append(
+            "存在未识别题型："
+            f"Part {item['passageNumber']} "
+            f"{item['questionType']}"
+        )
+
+    # --------------------------------------------------------
+    # 数据库字段完整性检查
+    # --------------------------------------------------------
+    #
+    # reading_question.question_text
+    # reading_question.correct_answer
+    #
+    # 当前数据库都是 NOT NULL。
+    #
+    # 所以 converter 阶段就应该提前发现问题，
+    # 不要等到 Spring Boot 导入时才由 SQLite 报错。
+    # --------------------------------------------------------
+
+    for passage in passages:
+
+        passage_number = passage.get(
+            "passageNumber"
+        )
+
+        for group in passage.get(
+            "questionGroups",
+            []
+        ):
+
+            for question in group.get(
                 "questions",
                 []
-            )
+            ):
 
-            total_questions += len(
-                questions
-            )
-
-            if questions:
-                start_number = questions[0].get(
-                    "questionNumber"
+                question_number = (
+                    question.get(
+                        "questionNumber"
+                    )
                 )
 
-                end_number = questions[-1].get(
-                    "questionNumber"
-                )
-            else:
-                start_number = "?"
-                end_number = "?"
+                if question.get(
+                    "questionText"
+                ) is None:
+                    errors.append(
+                        "questionText 为空："
+                        f"Part {passage_number} "
+                        f"Q{question_number}"
+                    )
 
-            print(
-                f"Part {passage_number} "
-                f"Q{start_number}-{end_number}: "
-                f"{group.get('questionType')} "
-                f"({len(questions)} questions)"
-            )
+                if question.get(
+                    "correctAnswer"
+                ) is None:
+                    errors.append(
+                        "correctAnswer 为空："
+                        f"Part {passage_number} "
+                        f"Q{question_number} "
+                        f"{question.get('questionType')}"
+                    )
 
-    print()
-    print(
-        f"QuestionGroup 数量：{total_groups}"
+    return (
+        len(errors) == 0,
+        errors,
     )
 
-    print(
-        f"Question 数量：{total_questions}"
+
+def load_metadata(
+    raw_file,
+):
+    """
+    读取与 raw 文件同名的 metadata。
+
+    例如：
+
+        c21-test-1.json
+        c21-test-1.meta.json
+    """
+
+    metadata_file = (
+        raw_file.parent
+        / f"{raw_file.stem}.meta.json"
     )
 
+    if not metadata_file.exists():
+        return {
+            "displayName":
+                raw_file.stem,
 
-def main():
-    """
-    主转换流程：
-    原始 Reading JSON
-        ↓
-    Passage / QuestionGroup / Question
-        ↓
-    ReadingImportDto JSON
-    """
+            "externalPaperId":
+                None,
+        }
 
-    if not INPUT_FILE.exists():
-
-        print("找不到 Reading Response 文件：")
-        print(INPUT_FILE)
-        return
-
-    # ========================================================
-    # 1. 读取原始 Response
-    # ========================================================
-
-    with INPUT_FILE.open(
+    with metadata_file.open(
         "r",
-        encoding="utf-8"
+        encoding="utf-8",
+    ) as file:
+
+        metadata = json.load(
+            file
+        )
+
+    if not isinstance(
+        metadata,
+        dict,
+    ):
+        return {
+            "displayName":
+                raw_file.stem,
+
+            "externalPaperId":
+                None,
+        }
+
+    return metadata
+
+
+def build_external_id(
+    raw_file,
+):
+    """
+    使用项目内部中性文件名作为 externalId。
+
+    例如：
+
+        c21-test-1.json
+        ->
+        c21-test-1
+
+    这样不会依赖外部 paperId。
+    """
+
+    return raw_file.stem
+
+
+def convert_one_file(
+    raw_file,
+):
+    """
+    转换一套 raw Reading。
+
+    返回：
+        {
+            "outputFile": ...,
+            "displayName": ...,
+            "passageCount": ...,
+            "questionCount": ...,
+        }
+
+    如果校验失败，则抛出 ValueError。
+    """
+
+    with raw_file.open(
+        "r",
+        encoding="utf-8",
     ) as file:
 
         source_data = json.load(
             file
         )
 
-    # 当前真实接口结构：
-    #
-    # {
-    #     "status": ...,
-    #     "message": ...,
-    #     "content": [
-    #         Passage 1,
-    #         Passage 2,
-    #         Passage 3
-    #     ]
-    # }
+    if not isinstance(
+        source_data,
+        dict,
+    ):
+        raise ValueError(
+            "最外层不是 JSON Object"
+        )
+
     content = source_data.get(
         "content"
     )
 
-    if not isinstance(content, list):
-
-        print(
-            "content 不是 list，无法转换。"
+    if not isinstance(
+        content,
+        list,
+    ):
+        raise ValueError(
+            "content 不是 list"
         )
-
-        return
-
-    # ========================================================
-    # 2. 转换 Passage
-    # ========================================================
 
     passages = []
 
@@ -1190,7 +1728,7 @@ def main():
 
         if not isinstance(
             passage,
-            dict
+            dict,
         ):
             continue
 
@@ -1200,47 +1738,353 @@ def main():
             )
         )
 
-    # ========================================================
-    # 3. 生成后端 ReadingImportDto 对应 JSON
-    # ========================================================
+    valid, errors = (
+        validate_converted_test(
+            passages
+        )
+    )
+
+    if not valid:
+        raise ValueError(
+            "；".join(errors)
+        )
+
+    metadata = load_metadata(
+        raw_file
+    )
+
+    display_name = str(
+        metadata.get(
+            "displayName"
+        )
+        or raw_file.stem
+    )
 
     result = {
         "externalId":
-            EXTERNAL_ID,
+            build_external_id(
+                raw_file
+            ),
 
         "title":
-            TEST_TITLE,
+            display_name,
 
         "source":
-            TEST_SOURCE,
+            None,
 
         "passages":
             passages,
     }
 
-    # ========================================================
-    # 4. 写入转换结果
-    # ========================================================
+    CONVERTED_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
-    with OUTPUT_FILE.open(
+    output_file = (
+        CONVERTED_DIR
+        / raw_file.name
+    )
+
+    with output_file.open(
         "w",
-        encoding="utf-8"
+        encoding="utf-8",
     ) as file:
 
         json.dump(
             result,
             file,
             ensure_ascii=False,
-            indent=2
+            indent=2,
         )
 
-    # ========================================================
-    # 5. 输出检查摘要
-    # ========================================================
+    return {
+        "displayName":
+            display_name,
 
-    print_conversion_summary(
-        passages
+        "externalId":
+            result["externalId"],
+
+        "rawFile":
+            raw_file.name,
+
+        "outputFile":
+            output_file.name,
+
+        "passageCount":
+            len(passages),
+
+        "questionCount":
+            count_questions(
+                passages
+            ),
+    }
+
+
+def get_raw_files():
+    """
+    获取所有真正的 raw Reading 文件。
+
+    排除：
+    - *.meta.json
+    - capture-summary.json
+    """
+
+    result = []
+
+    for file_path in sorted(
+        RAW_DIR.glob("*.json")
+    ):
+
+        if file_path.name.endswith(
+            ".meta.json"
+        ):
+            continue
+
+        if file_path.name in {
+            "capture-summary.json",
+            "reading-question-type-report.json",
+        }:
+            continue
+
+        # 只转换这次批量抓取的正式文件。
+        # 自动排除旧的 reading-raw-xxx.json。
+        if not re.fullmatch(
+            r"c\d+-test-\d+\.json",
+            file_path.name,
+        ):
+            continue
+
+        result.append(
+            file_path
+        )
+
+    return result
+
+
+def save_batch_summary(
+    success_items,
+    failed_items,
+):
+    """
+    保存批量转换结果。
+    """
+
+    CONVERTED_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
     )
+
+    summary = {
+        "total":
+            len(success_items)
+            + len(failed_items),
+
+        "successCount":
+            len(success_items),
+
+        "failedCount":
+            len(failed_items),
+
+        "success":
+            success_items,
+
+        "failed":
+            failed_items,
+    }
+
+    with SUMMARY_FILE.open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+
+        json.dump(
+            summary,
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+
+def main():
+    """
+    批量转换流程：
+
+    raw/*.json
+        ↓
+    复用现有题型识别 / 答案转换逻辑
+        ↓
+    每套执行质量校验
+        ↓
+    converted/*.json
+        ↓
+    conversion-summary.json
+    """
+
+    print()
+    print(
+        "Reading Batch Converter"
+    )
+    print(
+        "=" * 60
+    )
+    print()
+
+    if not RAW_DIR.exists():
+
+        print(
+            "找不到 raw 目录："
+        )
+
+        print(
+            RAW_DIR
+        )
+
+        return
+
+    raw_files = get_raw_files()
+
+    if not raw_files:
+
+        print(
+            "raw 目录中没有找到 Reading JSON。"
+        )
+
+        return
+
+    print(
+        f"找到 raw Test 数量："
+        f"{len(raw_files)}"
+    )
+
+    print()
+
+    success_items = []
+    failed_items = []
+
+    total = len(
+        raw_files
+    )
+
+    for index, raw_file in enumerate(
+        raw_files,
+        start=1,
+    ):
+
+        print(
+            f"[{index}/{total}] "
+            f"{raw_file.name}"
+        )
+
+        try:
+            result = convert_one_file(
+                raw_file
+            )
+
+        except Exception as error:
+
+            reason = str(
+                error
+            )
+
+            print(
+                "  转换失败："
+                + reason
+            )
+
+            failed_items.append({
+                "rawFile":
+                    raw_file.name,
+
+                "reason":
+                    reason,
+            })
+
+            continue
+
+        print(
+            "  成功："
+            f"{result['displayName']}"
+        )
+
+        print(
+            "  "
+            f"Passage={result['passageCount']} / "
+            f"Question={result['questionCount']}"
+        )
+
+        success_items.append(
+            result
+        )
+
+    save_batch_summary(
+        success_items,
+        failed_items,
+    )
+
+    print()
+    print(
+        "=" * 60
+    )
+
+    print(
+        "批量转换完成。"
+    )
+
+    print()
+
+    print(
+        f"总数：{total}"
+    )
+
+    print(
+        f"成功："
+        f"{len(success_items)}"
+    )
+
+    print(
+        f"失败："
+        f"{len(failed_items)}"
+    )
+
+    print()
+
+    print(
+        "转换结果目录："
+    )
+
+    print(
+        CONVERTED_DIR
+    )
+
+    print()
+
+    print(
+        "结果摘要："
+    )
+
+    print(
+        SUMMARY_FILE
+    )
+
+    if failed_items:
+
+        print()
+        print(
+            "失败项目："
+        )
+
+        for item in failed_items:
+            print(
+                "- "
+                + item[
+                    "rawFile"
+                ]
+                + ": "
+                + item[
+                    "reason"
+                ]
+            )
 
 
 if __name__ == "__main__":
