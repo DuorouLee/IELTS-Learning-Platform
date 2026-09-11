@@ -17,10 +17,16 @@ import com.duorou.ieltsbackend.reading.repository.ReadingQuestionRepository;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * ReadingImportService
@@ -110,6 +116,112 @@ public class ReadingImportService {
 
             throw new IllegalStateException(
                     "Failed to load Reading file: " + fileName,
+                    e
+            );
+        }
+    }
+
+
+    /**
+     * 扫描 converted/ 目录下所有正式 Reading JSON。
+     *
+     * 返回值示例：
+     *
+     * converted/c21-test-1.json
+     * converted/c21-test-2.json
+     * ...
+     *
+     * 为什么不在 Initializer 中直接操作文件系统？
+     *
+     * 因为 src/main/resources 在开发环境中是普通目录，
+     * 但项目打包成 jar 后，资源会进入 jar。
+     *
+     * ResourcePatternResolver 可以同时兼容：
+     *
+     * 1. IDE / Maven 开发环境
+     * 2. 打包后的 Spring Boot jar
+     *
+     * 所以更适合作为正式项目代码。
+     */
+    public List<String> listConvertedReadingFiles() {
+
+        try {
+
+            ResourcePatternResolver resolver =
+                    new PathMatchingResourcePatternResolver();
+
+            Resource[] resources =
+                    resolver.getResources(
+                            "classpath*:data/reading/converted/*.json"
+                    );
+
+
+            List<String> fileNames =
+                    new ArrayList<>();
+
+
+            for (Resource resource : resources) {
+
+                String fileName =
+                        resource.getFilename();
+
+
+                if (fileName == null) {
+                    continue;
+                }
+
+
+                /**
+                 * conversion-summary.json
+                 * 是 Python converter 的汇总文件，
+                 * 不是 Reading Test。
+                 */
+                if ("conversion-summary.json".equals(
+                        fileName
+                )) {
+                    continue;
+                }
+
+
+                /**
+                 * 正式题库文件名目前统一为：
+                 *
+                 * c21-test-1.json
+                 * c20-test-4.json
+                 * ...
+                 *
+                 * 这样可以避免未来 converted/ 中
+                 * 其他 JSON 被误当成 Reading Test。
+                 */
+                if (!fileName.matches(
+                        "c\\d+-test-\\d+\\.json"
+                )) {
+                    continue;
+                }
+
+
+                fileNames.add(
+                        "converted/" + fileName
+                );
+            }
+
+
+            /**
+             * 排序后启动日志更稳定，
+             * 每次导入顺序也更容易检查。
+             */
+            fileNames.sort(
+                    Comparator.naturalOrder()
+            );
+
+
+            return fileNames;
+
+
+        } catch (IOException e) {
+
+            throw new IllegalStateException(
+                    "Failed to scan converted Reading files.",
                     e
             );
         }

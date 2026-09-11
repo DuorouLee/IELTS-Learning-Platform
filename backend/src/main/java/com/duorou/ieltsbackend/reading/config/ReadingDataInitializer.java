@@ -3,50 +3,84 @@ package com.duorou.ieltsbackend.reading.config;
 import com.duorou.ieltsbackend.reading.entity.ReadingTest;
 import com.duorou.ieltsbackend.reading.importer.ReadingImportService;
 import com.duorou.ieltsbackend.reading.repository.ReadingTestRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 /**
  * ReadingDataInitializer
  *
- * 开发阶段用于初始化 Reading 数据。
+ * 负责在 Spring Boot 启动时初始化 Reading 题库。
  *
- * 当前包含：
+ * 当前流程：
  *
- * 1. 原来的单篇 Reading 测试
- * 2. 完整 Reading Test 01
+ * 1. 先处理旧版 Reading Test 01 -> c21-test-1 的迁移
+ *    这样可以尽量保留原来的 ReadingTest 数据库 ID，
+ *    避免已有 ReadingPracticeRecord 失去关联。
  *
- * 如果数据已经存在，就不会重复导入。
+ * 2. 扫描：
+ *
+ *    src/main/resources/data/reading/converted/
+ *
+ *    目录下所有正式 Reading JSON。
+ *
+ * 3. 根据 externalId 判断：
+ *
+ *    已存在 -> 跳过
+ *    不存在 -> 导入
+ *
+ * 4. 启动日志最后输出：
+ *
+ *    Imported
+ *    Skipped
+ *    Failed
  */
 @Configuration
 public class ReadingDataInitializer {
 
-    /**
-     * 当前完整 Reading Test 在本地数据库中的 ID。
-     *
-     * 这只是为了完成一次开发阶段的数据迁移。
-     *
-     * 迁移完成以后：
-     *
-     * externalId = reading-test-01
-     *
-     * 后续初始化就只依赖 externalId，
-     * 不再依赖这个数据库 ID。
-     */
-    private static final Long READING_TEST_01_DATABASE_ID = 8L;
+    private static final Logger log =
+            LoggerFactory.getLogger(
+                    ReadingDataInitializer.class
+            );
 
     /**
-     * 新的内部唯一标识。
+     * 旧版完整 Reading Test 的 externalId。
+     *
+     * 这是之前单套题阶段使用的内部名称。
      */
-    private static final String READING_TEST_01_EXTERNAL_ID =
+    private static final String OLD_READING_TEST_EXTERNAL_ID =
             "reading-test-01";
 
     /**
-     * 新的 Reading JSON 文件。
+     * 当前批量题库中，
+     * 原来 Reading Test 01 对应的新 externalId。
+     *
+     * 这样迁移后：
+     *
+     * ReadingTest.id 尽量保持不变
+     * externalId 更新为 c21-test-1
      */
-    private static final String READING_TEST_01_FILE =
-            "reading-test-01.json";
+    private static final String C21_TEST_1_EXTERNAL_ID =
+            "c21-test-1";
+
+    /**
+     * converted 目录中的正式 JSON 路径。
+     *
+     * ReadingImportService.loadReadingFile(...)
+     * 会自动在前面加：
+     *
+     * data/reading/
+     *
+     * 所以这里只需要写：
+     *
+     * converted/c21-test-1.json
+     */
+    private static final String C21_TEST_1_FILE =
+            "converted/c21-test-1.json";
 
 
     @Bean
@@ -58,88 +92,223 @@ public class ReadingDataInitializer {
         return args -> {
 
             // =================================================
-            // 1. 保留原来的单篇 Reading 测试
+            // 1. 先处理旧版 Test 01 -> c21-test-1 的迁移
             // =================================================
 
-            if (!readingTestRepository.existsByExternalId(
-                    "p1-high-01"
-            )) {
-
-                readingImportService.importReading(
-                        "reading-p1-high-01.json"
-                );
-            }
-
-
-            // =================================================
-            // 2. 完整 Reading Test
-            // =================================================
-
-            /**
-             * 第一种情况：
-             *
-             * 新 externalId 已经存在。
-             *
-             * 说明迁移已经完成，
-             * 不需要再次导入。
-             */
-            if (readingTestRepository.existsByExternalId(
-                    READING_TEST_01_EXTERNAL_ID
-            )) {
-                return;
-            }
-
-
-            /**
-             * 第二种情况：
-             *
-             * 新 externalId 还不存在，
-             * 但数据库中的 Test 8 已经存在。
-             *
-             * 说明这是第一次运行新版数据。
-             *
-             * 此时：
-             *
-             * 1. 保留 ReadingTest ID = 8
-             * 2. 删除下面旧 Passage / Group / Question
-             * 3. 更新 externalId
-             * 4. 根据 reading-test-01.json 重建内容
-             *
-             * 这样历史 ReadingPracticeRecord
-             * 仍然继续引用 Test 8。
-             */
-            ReadingTest existingTest =
+            migrateOldReadingTestIfNecessary(
+                    readingImportService,
                     readingTestRepository
-                            .findById(
-                                    READING_TEST_01_DATABASE_ID
-                            )
-                            .orElse(null);
+            );
 
-            if (existingTest != null) {
 
-                readingImportService.reimportReadingContent(
-                        READING_TEST_01_FILE,
-                        existingTest.getExternalId()
-                );
+            // =================================================
+            // 2. 获取 converted/ 目录下全部正式 JSON
+            // =================================================
 
-                return;
+            List<String> convertedFiles =
+                    readingImportService
+                            .listConvertedReadingFiles();
+
+
+            log.info(
+                    "Found {} converted Reading files.",
+                    convertedFiles.size()
+            );
+
+
+            // =================================================
+            // 3. 批量导入
+            // =================================================
+
+            int imported = 0;
+            int skipped = 0;
+            int failed = 0;
+
+
+            for (String fileName : convertedFiles) {
+
+                try {
+
+                    /**
+                     * 先读取 JSON。
+                     *
+                     * 这里主要是为了拿到 externalId。
+                     */
+                    String externalId =
+                            readingImportService
+                                    .loadReadingFile(fileName)
+                                    .getExternalId();
+
+
+                    /**
+                     * 数据库已经存在：
+                     *
+                     * 不重复导入。
+                     */
+                    if (readingTestRepository
+                            .existsByExternalId(
+                                    externalId
+                            )) {
+
+                        skipped++;
+
+                        log.info(
+                                "Skip Reading test: {}",
+                                externalId
+                        );
+
+                        continue;
+                    }
+
+
+                    /**
+                     * 数据库不存在：
+                     *
+                     * 正常导入。
+                     */
+                    readingImportService
+                            .importReading(fileName);
+
+                    imported++;
+
+                    log.info(
+                            "Imported Reading test: {}",
+                            externalId
+                    );
+
+
+                } catch (Exception e) {
+
+                    /**
+                     * 一套题失败时：
+                     *
+                     * 当前这套 importReading() 会因为 @Transactional
+                     * 自动回滚。
+                     *
+                     * 然后继续处理下一套，
+                     * 不让一套坏数据阻塞整个批量导入。
+                     */
+                    failed++;
+
+                    log.error(
+                            "Failed to import Reading file: {}",
+                            fileName,
+                            e
+                    );
+                }
             }
 
 
-            /**
-             * 第三种情况：
-             *
-             * 数据库里连 Test 8 都不存在。
-             *
-             * 例如：
-             * - 新数据库
-             * - 第一次启动项目
-             *
-             * 直接正常导入即可。
-             */
-            readingImportService.importReading(
-                    READING_TEST_01_FILE
+            // =================================================
+            // 4. 输出批量导入汇总
+            // =================================================
+
+            log.info(
+                    "Reading batch import finished. "
+                            + "Imported: {}, "
+                            + "Skipped: {}, "
+                            + "Failed: {}",
+                    imported,
+                    skipped,
+                    failed
             );
         };
+    }
+
+
+    /**
+     * 处理旧数据库中的 Reading Test 01。
+     *
+     * 为什么单独迁移？
+     *
+     * 因为之前已经有用户练习记录引用旧 ReadingTest。
+     *
+     * 如果直接新增一个 c21-test-1：
+     *
+     * 旧 ReadingPracticeRecord
+     *     ↓
+     * 旧 ReadingTest
+     *
+     * 新题库
+     *     ↓
+     * 新 ReadingTest
+     *
+     * 两者就会分裂。
+     *
+     * 所以这里优先复用原来的 ReadingTest，
+     * 只重建下面的 Passage / Group / Question，
+     * 并把 externalId 更新为 c21-test-1。
+     */
+    private void migrateOldReadingTestIfNecessary(
+            ReadingImportService readingImportService,
+            ReadingTestRepository readingTestRepository
+    ) {
+
+        // -----------------------------------------------------
+        // 情况 1：
+        // c21-test-1 已经存在。
+        //
+        // 说明迁移以前已经完成。
+        // -----------------------------------------------------
+
+        if (readingTestRepository.existsByExternalId(
+                C21_TEST_1_EXTERNAL_ID
+        )) {
+
+            log.info(
+                    "Reading migration already completed: {}",
+                    C21_TEST_1_EXTERNAL_ID
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // 情况 2：
+        // 找到旧的 reading-test-01。
+        //
+        // 使用 reimportReadingContent(...)
+        // 保留 ReadingTest 本身。
+        // -----------------------------------------------------
+
+        ReadingTest oldTest =
+                readingTestRepository
+                        .findByExternalId(
+                                OLD_READING_TEST_EXTERNAL_ID
+                        )
+                        .orElse(null);
+
+
+        if (oldTest == null) {
+
+            /**
+             * 新数据库没有旧数据时，
+             * 不需要做迁移。
+             *
+             * 后面的批量导入会正常创建 c21-test-1。
+             */
+            return;
+        }
+
+
+        log.info(
+                "Migrating Reading test {} -> {}",
+                OLD_READING_TEST_EXTERNAL_ID,
+                C21_TEST_1_EXTERNAL_ID
+        );
+
+
+        readingImportService
+                .reimportReadingContent(
+                        C21_TEST_1_FILE,
+                        OLD_READING_TEST_EXTERNAL_ID
+                );
+
+
+        log.info(
+                "Reading migration completed: {}",
+                C21_TEST_1_EXTERNAL_ID
+        );
     }
 }
