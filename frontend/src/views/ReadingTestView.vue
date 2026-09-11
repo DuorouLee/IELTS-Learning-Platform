@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import CompletionQuestionGroup from '@/components/reading/CompletionQuestionGroup.vue'
 import MultipleChoiceQuestionGroup from '@/components/reading/MultipleChoiceQuestionGroup.vue'
 import SummaryOptionsQuestionGroup from '@/components/reading/SummaryOptionsQuestionGroup.vue'
+import ReadingTimer from '@/components/reading/ReadingTimer.vue'
 
 import {
   getFullReadingTest,
@@ -51,6 +52,47 @@ const translationVisible = ref<Record<number, boolean>>({})
  * 然后把这些句子高亮显示。
  */
 const highlightedArticleFragments = ref<string[]>([])
+
+
+/**
+ * 用户自己在做题时留下的原文标记。
+ *
+ * 这里暂时只保存在当前页面状态中：
+ * - 提交答案后不会消失
+ * - 切换 Part 后不会消失
+ * - 刷新页面后会重新开始
+ */
+type ReadingAnnotation = {
+  id: string
+  passageId: number
+  start: number
+  end: number
+  text: string
+  questionNumber: number
+}
+
+type PendingArticleSelection = {
+  passageId: number
+  start: number
+  end: number
+  text: string
+}
+
+const articleTextElement = ref<HTMLElement | null>(null)
+const annotations = ref<ReadingAnnotation[]>([])
+const pendingArticleSelection =
+  ref<PendingArticleSelection | null>(null)
+
+/**
+ * 工具栏中当前准备标记的题号。
+ * 空字符串表示还没有选择题号。
+ */
+const annotationQuestionNumber = ref<number | ''>('')
+
+/**
+ * 给用户一个很短的操作提示。
+ */
+const annotationMessage = ref('')
 
 const currentTestId = computed(() => Number(route.params.testId))
 
@@ -276,63 +318,431 @@ function getQuestionHighlightFragments(
  * 点击“定位原文”后，
  * 会把命中的答案句包成 <mark>。
  */
+/**
+ * 当前 Passage 中用户已经留下的标记。
+ */
+const currentPassageAnnotations = computed(() => {
+  if (!currentPassage.value) {
+    return []
+  }
+
+  return annotations.value.filter(
+    (annotation) =>
+      annotation.passageId === currentPassage.value?.id,
+  )
+})
+
+/**
+ * 把当前文章渲染成“用户标记 + 官方答案定位”两层高亮。
+ *
+ * 颜色规则：
+ * - 用户做题时的标记：淡黄色
+ * - 提交后官方答案定位：淡蓝色
+ * - 两者重合：以淡蓝色为主，但仍保留用户的 Q 题号标签
+ */
 const highlightedArticleHtml = computed(() => {
   if (!currentPassage.value) {
     return ''
   }
 
-  let articleText = htmlToReadableText(
+  const articleText = htmlToReadableText(
     currentPassage.value.content,
   )
 
-  if (
-    highlightedArticleFragments.value.length ===
-    0
-  ) {
-    return escapeHtml(articleText)
+  type TextInterval = {
+    start: number
+    end: number
   }
 
-  const placeholders = new Map<
-    string,
-    string
-  >()
+  const officialIntervals: TextInterval[] = []
 
   highlightedArticleFragments.value.forEach(
-    (fragment, index) => {
-      if (!articleText.includes(fragment)) {
-        return
+    (fragment) => {
+      let searchFrom = 0
+
+      while (searchFrom < articleText.length) {
+        const index = articleText.indexOf(
+          fragment,
+          searchFrom,
+        )
+
+        if (index < 0) {
+          break
+        }
+
+        officialIntervals.push({
+          start: index,
+          end: index + fragment.length,
+        })
+
+        searchFrom = index + fragment.length
       }
-
-      const placeholder =
-        `__READING_HIGHLIGHT_${index}__`
-
-      placeholders.set(
-        placeholder,
-        fragment,
-      )
-
-      articleText = articleText.replace(
-        fragment,
-        placeholder,
-      )
     },
   )
 
-  let safeHtml = escapeHtml(
-    articleText,
-  )
+  const userAnnotations =
+    currentPassageAnnotations.value
 
-  placeholders.forEach(
-    (fragment, placeholder) => {
-      safeHtml = safeHtml.replace(
-        placeholder,
-        `<mark class="answer-highlight">${escapeHtml(fragment)}</mark>`,
+  /**
+   * 把所有高亮的开始/结束位置都作为边界。
+   * 然后逐段判断这一小段属于：
+   * - 普通正文
+   * - 用户标记
+   * - 官方定位
+   * - 两者重合
+   */
+  const boundaries = new Set<number>([
+    0,
+    articleText.length,
+  ])
+
+  officialIntervals.forEach((interval) => {
+    boundaries.add(interval.start)
+    boundaries.add(interval.end)
+  })
+
+  userAnnotations.forEach((annotation) => {
+    boundaries.add(annotation.start)
+    boundaries.add(annotation.end)
+  })
+
+  const sortedBoundaries = [
+    ...boundaries,
+  ].sort((a, b) => a - b)
+
+  let html = ''
+
+  for (
+    let index = 0;
+    index < sortedBoundaries.length - 1;
+    index += 1
+  ) {
+    const segmentStart =
+      sortedBoundaries[index]
+
+    const segmentEnd =
+      sortedBoundaries[index + 1]
+
+    /**
+     * TypeScript 会认为通过数组下标获取数据时，
+     * 有可能得到 undefined。
+     *
+     * 虽然我们的 for 循环已经限制了范围，
+     * 但这里再做一次明确检查，
+     * TypeScript 就能确定下面一定是 number。
+     */
+    if (
+      segmentStart === undefined ||
+      segmentEnd === undefined
+    ) {
+      continue
+    }
+
+    if (segmentEnd <= segmentStart) {
+      continue
+    }
+
+    const segmentText = articleText.slice(
+      segmentStart,
+      segmentEnd,
+    )
+
+    const activeAnnotation =
+      userAnnotations.find(
+        (annotation) =>
+          annotation.start <= segmentStart &&
+          annotation.end >= segmentEnd,
       )
-    },
-  )
 
-  return safeHtml
+    const isOfficial = officialIntervals.some(
+      (interval) =>
+        interval.start <= segmentStart &&
+        interval.end >= segmentEnd,
+    )
+
+    if (!activeAnnotation && !isOfficial) {
+      html += escapeHtml(segmentText)
+      continue
+    }
+
+    const classes = [
+      'article-highlight',
+    ]
+
+    if (activeAnnotation) {
+      classes.push('user-highlight')
+    }
+
+    if (isOfficial) {
+      classes.push('answer-highlight')
+    }
+
+    /**
+     * 一个用户标记可能因为和官方答案重合而被切成几小段。
+     * Q22 这种标签只显示在该用户标记的最后一小段后面。
+     */
+    const showQuestionLabel =
+      activeAnnotation &&
+      segmentEnd === activeAnnotation.end
+
+    const annotationAttributes =
+      activeAnnotation
+        ? ` data-annotation-id="${escapeHtml(activeAnnotation.id)}"`
+        : ''
+
+    const questionAttribute =
+      showQuestionLabel
+        ? ` data-question="Q${activeAnnotation.questionNumber}"`
+        : ''
+
+    html +=
+      `<span class="${classes.join(' ')}"` +
+      annotationAttributes +
+      questionAttribute +
+      `>${escapeHtml(segmentText)}</span>`
+  }
+
+  return html
 })
+
+/**
+ * 计算一个 DOM 位置在整篇原文中的字符偏移量。
+ *
+ * 这样即使正文里已经存在黄色/蓝色高亮标签，
+ * 仍然可以准确知道用户刚刚选中了原文的哪一段。
+ */
+function getTextOffset(
+  root: HTMLElement,
+  node: Node,
+  offset: number,
+) {
+  const range = document.createRange()
+
+  range.selectNodeContents(root)
+  range.setEnd(node, offset)
+
+  return range.toString().length
+}
+
+/**
+ * 用户鼠标选中原文后，先把选择范围暂存下来。
+ *
+ * 暂存以后，即使用户再去点题号下拉框，
+ * 这次选择也不会丢失。
+ */
+function captureArticleSelection() {
+  if (
+    !currentPassage.value ||
+    translationVisible.value[currentPassage.value.id] ||
+    !articleTextElement.value
+  ) {
+    return
+  }
+
+  const selection = window.getSelection()
+
+  if (
+    !selection ||
+    selection.rangeCount === 0 ||
+    selection.isCollapsed
+  ) {
+    return
+  }
+
+  const range = selection.getRangeAt(0)
+  const root = articleTextElement.value
+
+  if (
+    !root.contains(range.startContainer) ||
+    !root.contains(range.endContainer)
+  ) {
+    return
+  }
+
+  let start = getTextOffset(
+    root,
+    range.startContainer,
+    range.startOffset,
+  )
+
+  let end = getTextOffset(
+    root,
+    range.endContainer,
+    range.endOffset,
+  )
+
+  if (start > end) {
+    ;[start, end] = [end, start]
+  }
+
+  const articleText = htmlToReadableText(
+    currentPassage.value.content,
+  )
+
+  /**
+   * 用户通常不会故意把选择范围前后的空格也算进去。
+   * 这里自动去掉首尾空白，让高亮更整齐。
+   */
+  while (
+    start < end &&
+    /\s/.test(articleText[start] ?? '')
+  ) {
+    start += 1
+  }
+
+  while (
+    end > start &&
+    /\s/.test(articleText[end - 1] ?? '')
+  ) {
+    end -= 1
+  }
+
+  if (end <= start) {
+    return
+  }
+
+  pendingArticleSelection.value = {
+    passageId: currentPassage.value.id,
+    start,
+    end,
+    text: articleText.slice(start, end),
+  }
+
+  annotationMessage.value =
+    '已选中原文，请选择题号后点击“标记”。'
+}
+
+/**
+ * 把刚才选中的原文保存为“我的定位”。
+ */
+function addArticleAnnotation() {
+  const selection =
+    pendingArticleSelection.value
+
+  if (
+    !selection ||
+    annotationQuestionNumber.value === '' ||
+    !currentPassage.value
+  ) {
+    annotationMessage.value =
+      '请先选中原文，再选择题号。'
+    return
+  }
+
+  if (
+    selection.passageId !==
+    currentPassage.value.id
+  ) {
+    annotationMessage.value =
+      '请重新选中当前 Part 的原文。'
+    return
+  }
+
+  /**
+   * 第一版保持简单：
+   * 不允许两个“我的定位”互相覆盖。
+   * 如果需要同一句对应多题，后面再扩展成多题号标签。
+   */
+  const overlapsExisting =
+    currentPassageAnnotations.value.some(
+      (annotation) =>
+        selection.start < annotation.end &&
+        selection.end > annotation.start,
+    )
+
+  if (overlapsExisting) {
+    annotationMessage.value =
+      '这段原文已经有标记，请先删除旧标记。'
+    return
+  }
+
+  annotations.value.push({
+    id: `${selection.passageId}-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`,
+    passageId: selection.passageId,
+    start: selection.start,
+    end: selection.end,
+    text: selection.text,
+    questionNumber:
+      annotationQuestionNumber.value,
+  })
+
+  pendingArticleSelection.value = null
+  annotationMessage.value =
+    `已标记 Q${annotationQuestionNumber.value}。`
+
+  window.getSelection()?.removeAllRanges()
+}
+
+/**
+ * 点击黄色“我的定位”即可删除该条标记。
+ *
+ * 使用事件代理的原因：
+ * 高亮内容是通过 v-html 动态生成的，
+ * 不能直接在模板里给每个 span 写 @click。
+ */
+function handleArticleClick(event: MouseEvent) {
+  const target = event.target
+
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+
+  const annotationElement =
+    target.closest<HTMLElement>(
+      '[data-annotation-id]',
+    )
+
+  const annotationId =
+    annotationElement?.dataset.annotationId
+
+  if (!annotationId) {
+    return
+  }
+
+  annotations.value = annotations.value.filter(
+    (annotation) =>
+      annotation.id !== annotationId,
+  )
+
+  pendingArticleSelection.value = null
+  annotationMessage.value = '已删除该标记。'
+}
+
+/**
+ * 清除当前 Passage 的所有“我的定位”。
+ * 官方答案定位不会被清除。
+ */
+function clearCurrentPassageAnnotations() {
+  if (
+    !currentPassage.value ||
+    currentPassageAnnotations.value.length === 0
+  ) {
+    annotationMessage.value =
+      '当前 Part 还没有标记。'
+    return
+  }
+
+  const confirmed = window.confirm(
+    '确定清除当前 Part 的全部做题标记吗？',
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  const passageId = currentPassage.value.id
+
+  annotations.value = annotations.value.filter(
+    (annotation) =>
+      annotation.passageId !== passageId,
+  )
+
+  pendingArticleSelection.value = null
+  annotationMessage.value =
+    '当前 Part 的标记已清除。'
+}
 
 /**
  * 点击 Review 中的“定位原文”：
@@ -375,6 +785,10 @@ async function locateQuestionInArticle(
 function toggleTranslation(passageId: number) {
   translationVisible.value[passageId] =
     !translationVisible.value[passageId]
+
+  // 翻译和原文之间切换时，之前的鼠标选择不再有效。
+  pendingArticleSelection.value = null
+  annotationMessage.value = ''
 }
 
 function switchPassage(index: number) {
@@ -391,8 +805,12 @@ function switchPassage(index: number) {
 
   currentPassageIndex.value = index
 
-  // 切换 Passage 后清除上一段文章的答案高亮。
+  // 切换 Passage 后只清除“官方答案定位”。
+  // 用户自己做题时留下的 annotations 会继续保留。
   highlightedArticleFragments.value = []
+  pendingArticleSelection.value = null
+  annotationQuestionNumber.value = ''
+  annotationMessage.value = ''
 }
 
 /**
@@ -418,6 +836,9 @@ async function goToQuestion(
 ) {
   currentPassageIndex.value = passageIndex
   highlightedArticleFragments.value = []
+  pendingArticleSelection.value = null
+  annotationQuestionNumber.value = ''
+  annotationMessage.value = ''
 
   await nextTick()
 
@@ -447,6 +868,12 @@ async function loadReadingTest() {
     currentPassageIndex.value = 0
     translationVisible.value = {}
     highlightedArticleFragments.value = []
+
+    // 进入另一套 Reading Test 时重新开始做题标记。
+    annotations.value = []
+    pendingArticleSelection.value = null
+    annotationQuestionNumber.value = ''
+    annotationMessage.value = ''
 
     const savedAnswers = localStorage.getItem(
       storageKey.value,
@@ -552,6 +979,8 @@ watch(
       <!-- 顶部只保留答题进度和提交按钮 -->
       <header class="reading-header">
         <div class="reading-actions">
+          <ReadingTimer />
+
           <div class="reading-progress">
             已答：{{ answeredCount }} / {{ totalQuestionCount }}
           </div>
@@ -626,33 +1055,74 @@ watch(
                 Article
               </h3>
 
-              <button v-if="currentPassage.translation" type="button" class="translation-button" @click="
-                toggleTranslation(
-                  currentPassage.id,
-                )
+              <div class="article-toolbar-actions">
+                <template v-if="
+                  !translationVisible[
+                  currentPassage.id
+                  ]
                 ">
-                {{
-                  translationVisible[currentPassage.id]
-                    ? '查看原文'
-                    : '查看译文'
-                }}
-              </button>
+                  <select v-model="annotationQuestionNumber" class="annotation-question-select" aria-label="选择标记题号">
+                    <option value="">
+                      题号
+                    </option>
+
+                    <option v-for="
+questionNumber in
+  getPassageQuestionNumbers(
+    currentPassage,
+  )
+                      " :key="questionNumber" :value="questionNumber">
+                      Q{{ questionNumber }}
+                    </option>
+                  </select>
+
+                  <button type="button" class="annotation-button" @click="addArticleAnnotation">
+                    标记
+                  </button>
+
+                  <button type="button" class="annotation-clear-button" @click="
+                    clearCurrentPassageAnnotations
+                  ">
+                    清除标记
+                  </button>
+                </template>
+
+                <button v-if="currentPassage.translation" type="button" class="translation-button" @click="
+                  toggleTranslation(
+                    currentPassage.id,
+                  )
+                  ">
+                  {{
+                    translationVisible[
+                      currentPassage.id
+                    ]
+                      ? '查看原文'
+                      : '查看译文'
+                  }}
+                </button>
+              </div>
             </div>
+
+            <p v-if="
+              !translationVisible[
+              currentPassage.id
+              ] &&
+              annotationMessage
+            " class="annotation-message">
+              {{ annotationMessage }}
+            </p>
 
             <div class="article-content">
               <h3 class="article-title">
                 {{ formatPassageTitle(currentPassage.title) }}
               </h3>
 
-              <p
-                v-if="
-                  !translationVisible[
-                    currentPassage.id
-                  ]
-                "
-                class="article-paragraph article-readable-text"
-                v-html="highlightedArticleHtml"
-              ></p>
+              <p v-if="
+                !translationVisible[
+                currentPassage.id
+                ]
+              " ref="articleTextElement" class="article-paragraph article-readable-text"
+                v-html="highlightedArticleHtml" @mouseup="captureArticleSelection" @click="handleArticleClick"></p>
 
               <p v-else class="article-paragraph translation-paragraph">
                 {{
@@ -680,62 +1150,41 @@ watch(
                 " />
 
               <!-- Multiple Choice：每一道题使用自己的 A/B/C/D 选项 -->
-              <MultipleChoiceQuestionGroup
-                v-else-if="group.questionType === 'MULTIPLE_CHOICE'"
-                :instruction="group.instruction"
-                :questions="group.questions"
-                :answers="answers"
-                :disabled="submitResult !== null"
-                @update-answer="
+              <MultipleChoiceQuestionGroup v-else-if="group.questionType === 'MULTIPLE_CHOICE'"
+                :instruction="group.instruction" :questions="group.questions" :answers="answers"
+                :disabled="submitResult !== null" @update-answer="
                   (questionId, value) => {
                     answers[questionId] = value
                   }
-                "
-              />
+                " />
 
               <!-- 带共享选项的 Summary Completion -->
-              <SummaryOptionsQuestionGroup
-                v-else-if="
-                  group.questionType ===
-                  'SUMMARY_COMPLETION_WITH_OPTIONS'
-                "
-                :instruction="group.instruction"
-                :questions="group.questions"
-                :options="group.options"
-                :answers="answers"
-                :disabled="submitResult !== null"
-                @update-answer="
+              <SummaryOptionsQuestionGroup v-else-if="
+                group.questionType ===
+                'SUMMARY_COMPLETION_WITH_OPTIONS'
+              " :instruction="group.instruction" :questions="group.questions" :options="group.options"
+                :answers="answers" :disabled="submitResult !== null" @update-answer="
                   (questionId, value) => {
                     answers[questionId] = value
                   }
-                "
-              />
+                " />
 
               <!-- 其他已经支持的题型 -->
               <template v-else>
-                <p
-                  v-if="group.instruction"
-                  class="group-instruction"
-                >
+                <p v-if="group.instruction" class="group-instruction">
                   {{ htmlToReadableText(group.instruction) }}
                 </p>
 
-                <div
-                  v-if="
-                    group.questionType === 'MATCHING_HEADINGS' ||
-                    group.questionType === 'MATCHING_FEATURES' ||
-                    group.questionType === 'MATCHING_INFORMATION' ||
-                    group.questionType === 'MATCHING_SENTENCE_ENDINGS'
-                  "
-                  class="feature-options"
-                >
+                <div v-if="
+                  group.questionType === 'MATCHING_HEADINGS' ||
+                  group.questionType === 'MATCHING_FEATURES' ||
+                  group.questionType === 'MATCHING_INFORMATION' ||
+                  group.questionType === 'MATCHING_SENTENCE_ENDINGS'
+                " class="feature-options">
                   <h4>Options</h4>
 
                   <ul>
-                    <li
-                      v-for="option in group.options"
-                      :key="option.id"
-                    >
+                    <li v-for="option in group.options" :key="option.id">
                       <strong>{{ option.optionValue }}</strong>
                       {{ option.optionText }}
                     </li>
@@ -743,38 +1192,25 @@ watch(
                 </div>
 
                 <div class="question-list">
-                  <div
-                    v-for="question in group.questions"
-                    :id="`reading-question-${question.questionNumber}`"
-                    :key="question.id"
-                    class="question-item"
-                  >
+                  <div v-for="question in group.questions" :id="`reading-question-${question.questionNumber}`"
+                    :key="question.id" class="question-item">
                     <p class="question-text">
                       {{ question.questionNumber }}.
                       {{ question.questionText }}
                     </p>
 
                     <!-- Matching 共用题组级选项 -->
-                    <select
-                      v-if="
-                        group.questionType === 'MATCHING_HEADINGS' ||
-                        group.questionType === 'MATCHING_FEATURES' ||
-                        group.questionType === 'MATCHING_INFORMATION' ||
-                    group.questionType === 'MATCHING_SENTENCE_ENDINGS'
-                      "
-                      v-model="answers[question.id]"
-                      :disabled="submitResult !== null"
-                      class="answer-select"
-                    >
+                    <select v-if="
+                      group.questionType === 'MATCHING_HEADINGS' ||
+                      group.questionType === 'MATCHING_FEATURES' ||
+                      group.questionType === 'MATCHING_INFORMATION' ||
+                      group.questionType === 'MATCHING_SENTENCE_ENDINGS'
+                    " v-model="answers[question.id]" :disabled="submitResult !== null" class="answer-select">
                       <option value="" disabled>
                         请选择答案
                       </option>
 
-                      <option
-                        v-for="option in group.options"
-                        :key="option.id"
-                        :value="option.optionValue"
-                      >
+                      <option v-for="option in group.options" :key="option.id" :value="option.optionValue">
                         {{
                           option.optionText
                             ? `${option.optionValue} - ${option.optionText}`
@@ -784,24 +1220,17 @@ watch(
                     </select>
 
                     <!-- 判断题使用真正的选项，不再手输答案 -->
-                    <select
-                      v-else-if="
-                        group.questionType === 'TRUE_FALSE_NOT_GIVEN' ||
-                        group.questionType === 'YES_NO_NOT_GIVEN'
-                      "
-                      v-model="answers[question.id]"
-                      :disabled="submitResult !== null"
-                      class="answer-select"
-                    >
+                    <select v-else-if="
+                      group.questionType === 'TRUE_FALSE_NOT_GIVEN' ||
+                      group.questionType === 'YES_NO_NOT_GIVEN'
+                    " v-model="answers[question.id]" :disabled="submitResult !== null" class="answer-select">
                       <option value="" disabled>
                         请选择答案
                       </option>
 
-                      <template
-                        v-if="
-                          group.questionType === 'TRUE_FALSE_NOT_GIVEN'
-                        "
-                      >
+                      <template v-if="
+                        group.questionType === 'TRUE_FALSE_NOT_GIVEN'
+                      ">
                         <option value="TRUE">TRUE</option>
                         <option value="FALSE">FALSE</option>
                         <option value="NOT GIVEN">NOT GIVEN</option>
@@ -815,14 +1244,8 @@ watch(
                     </select>
 
                     <!-- 兜底：以后遇到尚未做专用 UI 的题型仍可以输入 -->
-                    <input
-                      v-else
-                      v-model="answers[question.id]"
-                      :disabled="submitResult !== null"
-                      class="answer-input"
-                      type="text"
-                      placeholder="请输入答案"
-                    />
+                    <input v-else v-model="answers[question.id]" :disabled="submitResult !== null" class="answer-input"
+                      type="text" placeholder="请输入答案" />
 
                   </div>
                 </div>
@@ -843,21 +1266,13 @@ watch(
                 - Correct answer
                 - Explanation
               -->
-              <div
-                v-if="submitResult"
-                class="group-review-list"
-              >
-                <div
-                  v-for="question in group.questions"
-                  :key="`review-${question.id}`"
-                  class="question-review"
-                  :class="{
-                    correct:
-                      getQuestionReview(question.id)?.correct,
-                    incorrect:
-                      !getQuestionReview(question.id)?.correct,
-                  }"
-                >
+              <div v-if="submitResult" class="group-review-list">
+                <div v-for="question in group.questions" :key="`review-${question.id}`" class="question-review" :class="{
+                  correct:
+                    getQuestionReview(question.id)?.correct,
+                  incorrect:
+                    !getQuestionReview(question.id)?.correct,
+                }">
                   <div class="review-heading">
                     <strong>
                       Question {{ question.questionNumber }}
@@ -889,23 +1304,15 @@ watch(
                     </span>
                   </div>
 
-                  <div
-                    v-if="question.explanation"
-                    class="review-explanation"
-                  >
+                  <div v-if="question.explanation" class="review-explanation">
                     <div class="explanation-heading">
                       <strong>Explanation</strong>
 
-                      <button
-                        v-if="question.answerHighlightJson"
-                        type="button"
-                        class="locate-button"
-                        @click="
-                          locateQuestionInArticle(
-                            question.answerHighlightJson,
-                          )
-                        "
-                      >
+                      <button v-if="question.answerHighlightJson" type="button" class="locate-button" @click="
+                        locateQuestionInArticle(
+                          question.answerHighlightJson,
+                        )
+                        ">
                         定位原文
                       </button>
                     </div>
@@ -943,9 +1350,9 @@ watch(
             <div class="part-question-numbers">
               <button v-for="
 questionNumber in
-                    getPassageQuestionNumbers(
-                      passage,
-                    )
+  getPassageQuestionNumbers(
+    passage,
+  )
                 " :key="questionNumber" type="button" class="question-number-button" :class="{
                   answered:
                     Object.entries(
@@ -1132,6 +1539,61 @@ questionNumber in
   border: none;
 }
 
+
+.article-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.annotation-question-select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #d7e0e8;
+  border-radius: 7px;
+  background: #fff;
+  color: #526b80;
+  font-size: 13px;
+}
+
+.annotation-button,
+.annotation-clear-button {
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.annotation-button {
+  border: 1px solid #b9d3e6;
+  background: #eef7ff;
+  color: #35586f;
+}
+
+.annotation-button:hover {
+  background: #e1f1ff;
+}
+
+.annotation-clear-button {
+  border: 1px solid #dde3e8;
+  background: #fff;
+  color: #687783;
+}
+
+.annotation-clear-button:hover {
+  background: #f6f8f9;
+}
+
+.annotation-message {
+  margin: -8px 0 14px;
+  color: #73818c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .translation-button {
   flex-shrink: 0;
   padding: 7px 12px;
@@ -1161,6 +1623,73 @@ questionNumber in
 .translation-paragraph {
   white-space: pre-wrap;
   line-height: 1.85;
+}
+
+/**
+ * 用户做题时自己留下的高亮。
+ *
+ * 淡黄色 = 我做题时认为答案可能在这里。
+ *
+ * 因为这些 span 是通过 v-html 动态生成的，
+ * 所以 scoped CSS 需要使用 :deep() 才能生效。
+ */
+.article-readable-text :deep(.user-highlight) {
+  padding: 2px 3px;
+  border-radius: 4px;
+  background: #fff1a8;
+}
+
+/**
+ * 用户高亮旁边的小题号标签。
+ *
+ * 例如：
+ * highlighted sentence  Q6
+ */
+.article-readable-text :deep(.user-highlight[data-question]::after) {
+  content: attr(data-question);
+
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 5px;
+
+  border: 1px solid #bdd7ea;
+  border-radius: 5px;
+
+  background: #edf7ff;
+  color: #41677f;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  vertical-align: middle;
+}
+
+/**
+ * 提交答案以后，
+ * 官方 answerHighlightJson 对应的答案依据使用淡蓝色。
+ *
+ * 这样：
+ * 黄色 = 我的判断
+ * 蓝色 = 官方答案位置
+ */
+.article-readable-text :deep(.answer-highlight) {
+  padding: 2px 3px;
+  border-radius: 4px;
+
+  background: #dceeff;
+
+  box-shadow:
+    0 0 0 2px rgba(113, 170, 211, 0.14);
+}
+
+/**
+ * 如果“我的定位”和“官方答案定位”刚好重合，
+ * 官方淡蓝色优先显示。
+ *
+ * 但是 Q6 / Q22 这种自己的题号标签仍然保留。
+ */
+.article-readable-text :deep(.user-highlight.answer-highlight) {
+  background: #dceeff;
 }
 
 .question-group {
@@ -1306,11 +1835,63 @@ questionNumber in
  * scoped CSS 默认不会直接作用到它，
  * 所以这里使用 :deep()。
  */
-.article-readable-text :deep(.answer-highlight) {
-  padding: 2px 3px;
-  border-radius: 4px;
+/**
+ * 用户做题时自己的定位：淡黄色。
+ */
+.article-readable-text :deep(.user-highlight) {
+  padding: 1px 2px;
+  border-radius: 3px;
   background: #fff1a8;
-  box-shadow: 0 0 0 2px rgba(245, 205, 80, 0.18);
+  cursor: pointer;
+}
+
+/**
+ * 提交答案后的官方定位：淡蓝色。
+ *
+ * 如果和用户自己的黄色标记重合，
+ * answer-highlight 写在后面，因此以淡蓝色显示。
+ */
+.article-readable-text :deep(.answer-highlight) {
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: #dceeff;
+  box-shadow: 0 0 0 2px rgba(91, 151, 190, 0.12);
+}
+
+/**
+ * 用户标记后的 Q22 / Q26 小标签。
+ *
+ * 使用 ::after 而不是直接把 Q22 写进正文 DOM，
+ * 这样鼠标选择原文时，字符位置不会被题号干扰。
+ */
+.article-readable-text :deep(.user-highlight[data-question]::after) {
+  content: attr(data-question);
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border: 1px solid #bfd6e6;
+  border-radius: 999px;
+  background: #eef7ff;
+  color: #45657c;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  vertical-align: 1px;
+}
+
+/**
+ * 用户自己的定位和官方答案依据重合时：
+ * 保留淡蓝色正文，同时继续显示 Q 题号。
+ */
+.article-readable-text :deep(.user-highlight.answer-highlight) {
+  background: #dceeff;
+}
+
+/**
+ * 鼠标自己选中文字时也给一个非常轻的提示色。
+ */
+.article-readable-text :deep(::selection) {
+  background: #e9edf0;
 }
 
 .part-navigator {
@@ -1418,6 +1999,15 @@ questionNumber in
   .passage-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .article-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .article-toolbar-actions {
+    justify-content: flex-start;
   }
 }
 </style>
