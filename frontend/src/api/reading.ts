@@ -9,21 +9,37 @@ const API_BASE_URL = 'http://localhost:8080'
 export interface ReadingQuestion {
   id: number
 
-  // IELTS 原始题号，例如 1、2、3...
+  // IELTS 原始题号
   questionNumber: number
 
-  // 题型，例如：
-  // MATCHING_HEADINGS
-  // MATCHING_FEATURES
+  // 题型
   questionType: string
 
   // 题目正文
   questionText: string
 
-  // 题目解析。
-  // 当前答题页面暂时不会使用，
-  // 后续做判分 / Review 页面时会用到。
+  // 题目解析
   explanation: string
+
+  /**
+   * 当前题自己的独立选项。
+   *
+   * 后端目前以 JSON 字符串返回，例如：
+   *
+   * ["Option A","Option B","Option C","Option D"]
+   *
+   * 后续做 Multiple Choice UI 时再解析成数组。
+   */
+  optionsJson: string | null
+
+  /**
+   * 当前题对应的原文答案定位信息。
+   *
+   * 后续用于：
+   * - 原文高亮
+   * - Review 定位答案句
+   */
+  answerHighlightJson: string | null
 }
 
 // 定义 QuestionGroup 中的一个可选答案。
@@ -134,6 +150,17 @@ export interface ReadingPassage {
    * 所以 content 只负责文章正文内容。
    */
   content: string
+
+  /**
+   * Passage 中文译文。
+   *
+   * 后端来自：
+   * reading_passage.translation
+   *
+   * 某些旧题可能没有译文，
+   * 所以允许为 null。
+   */
+  translation: string | null
 
   // 旧结构继续保留。
   //

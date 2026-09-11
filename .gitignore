@@ -1,2 +1,12 @@
 # Local SQLite database
 backend/data/*.db
+
+backend/src/main/resources/data/reading/raw/
+
+# Local Reading data
+backend/src/main/resources/data/reading/raw/
+backend/src/main/resources/data/reading/converted/
+
+# Python cache
+__pycache__/
+*.pyc
